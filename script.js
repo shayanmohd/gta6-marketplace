@@ -1,3 +1,8 @@
+// ============================================================================
+// VICE SYNDICATE - GTA 6 MARKETPLACE
+// Client-side state management, authentication, and bidding system
+// ============================================================================
+
 // UI Element References
 const countdownEl = document.getElementById("countdown");
 const revealEls = document.querySelectorAll(".reveal");
@@ -36,8 +41,12 @@ let activeFilter = "all";
 let currentUser = null;
 let connectedWallet = null;
 
-// Countdown
+// Countdown target
 const targetDate = new Date("2026-10-01T00:00:00");
+
+// ============================================================================
+// COUNTDOWN
+// ============================================================================
 
 function updateCountdown() {
   const now = new Date();
@@ -59,7 +68,10 @@ function updateCountdown() {
   countdownEl.textContent = `${days}d ${hours}h ${minutes}m`;
 }
 
-// Scroll reveal animation
+// ============================================================================
+// ANIMATIONS
+// ============================================================================
+
 function setupRevealAnimation() {
   const revealObserver = new IntersectionObserver(
     (entries) => {
@@ -76,14 +88,11 @@ function setupRevealAnimation() {
   revealEls.forEach((el) => revealObserver.observe(el));
 }
 
-// Animated counters
 function setupCounters() {
   const counterObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        if (!entry.isIntersecting) {
-          return;
-        }
+        if (!entry.isIntersecting) return;
 
         const el = entry.target;
         const target = Number(el.getAttribute("data-target"));
@@ -106,12 +115,20 @@ function setupCounters() {
         counterObserver.unobserve(el);
       });
     },
-// Utility: Format price
+    { threshold: 0.4 }
+  );
+
+  counters.forEach((counter) => counterObserver.observe(counter));
+}
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
 function formatPrice(value) {
   return `$${value.toLocaleString("en-US")}`;
 }
 
-// Utility: Show toast notification
 function showToast(message) {
   let toast = document.querySelector(".market-toast");
   if (!toast) {
@@ -128,11 +145,13 @@ function showToast(message) {
   }, 1800);
 }
 
-// Storage: Get bids
+// ============================================================================
+// STORAGE
+// ============================================================================
+
 function getStoredBids() {
   const raw = localStorage.getItem(BID_STORAGE_KEY);
   if (!raw) return {};
-
   try {
     return JSON.parse(raw);
   } catch {
@@ -140,20 +159,102 @@ function getStoredBids() {
   }
 }
 
-// Storage: Set bids
 function setStoredBids(bids) {
   localStorage.setItem(BID_STORAGE_KEY, JSON.stringify(bids));
 }
 
-// Storage: Get all users
 function getAllUsers() {
   const raw = localStorage.getItem(USERS_STORAGE_KEY);
   if (!raw) return {};
-
   try {
     return JSON.parse(raw);
   } catch {
-// Marketplace: Render watchlist
+    return {};
+  }
+}
+
+function saveUser(username, email, passwordHash) {
+  const users = getAllUsers();
+  users[username] = {
+    username,
+    email,
+    passwordHash,
+    createdAt: Date.now()
+  };
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+}
+
+// ============================================================================
+// AUTHENTICATION
+// ============================================================================
+
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return String(hash);
+}
+
+function handleSignup(e) {
+  e.preventDefault();
+
+  const username = document.getElementById("username").value.trim();
+  const email = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+
+  if (!username || !email || !password) {
+    signupMessage.textContent = "All fields required.";
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    signupMessage.textContent = "Passwords do not match.";
+    return;
+  }
+
+  if (password.length < 8) {
+    signupMessage.textContent = "Password must be at least 8 characters.";
+    return;
+  }
+
+  const users = getAllUsers();
+  if (users[username]) {
+    signupMessage.textContent = "Username already taken.";
+    return;
+  }
+
+  const passwordHash = simpleHash(password);
+  saveUser(username, email, passwordHash);
+
+  currentUser = username;
+  localStorage.setItem(CURRENT_USER_KEY, username);
+
+  signupMessage.textContent = `Welcome, ${username}!`;
+  setTimeout(() => {
+    signupModal.classList.remove("open");
+    signupFormModal.reset();
+    renderWatchlist();
+    showToast(`Account created! Welcome, ${username}`);
+  }, 1000);
+}
+
+function openSignupModal() {
+  signupModal.classList.add("open");
+}
+
+function closeSignupModal() {
+  signupModal.classList.remove("open");
+  signupMessage.textContent = "";
+}
+
+// ============================================================================
+// MARKETPLACE
+// ============================================================================
+
 function renderWatchlist() {
   const bids = getStoredBids();
   const entries = Object.entries(bids);
@@ -179,7 +280,6 @@ function renderWatchlist() {
     });
 }
 
-// Marketplace: Apply filters and search
 function applyFilters() {
   const term = searchInput.value.trim().toLowerCase();
   let visibleCount = 0;
@@ -198,7 +298,6 @@ function applyFilters() {
   marketSummary.textContent = `${visibleCount} listing${visibleCount === 1 ? "" : "s"} active`;
 }
 
-// Marketplace: Setup bidding
 function setupBidding() {
   cards.forEach((card) => {
     const priceEl = card.querySelector("[data-price]");
@@ -232,7 +331,6 @@ function setupBidding() {
   });
 }
 
-// Clear all bids
 function handleClearBids() {
   localStorage.removeItem(BID_STORAGE_KEY);
 
@@ -247,7 +345,10 @@ function handleClearBids() {
   showToast("All bids cleared");
 }
 
-// Web3: Connect wallet
+// ============================================================================
+// WEB3 / CRYPTO
+// ============================================================================
+
 async function handleConnectWallet() {
   if (typeof window.ethereum === "undefined") {
     showToast("MetaMask or Web3 wallet not detected");
@@ -271,7 +372,6 @@ async function handleConnectWallet() {
   }
 }
 
-// Render bid history for crypto section
 function renderBidHistory() {
   const bids = getStoredBids();
   const entries = Object.entries(bids);
@@ -292,7 +392,10 @@ function renderBidHistory() {
   bidHistory.innerHTML = html;
 }
 
-// Email signup (non-crypto)
+// ============================================================================
+// EMAIL SIGNUP
+// ============================================================================
+
 function handleEmailSignup(e) {
   e.preventDefault();
   const email = document.getElementById("emailInput").value.trim();
@@ -306,7 +409,10 @@ function handleEmailSignup(e) {
   document.getElementById("joinForm").reset();
 }
 
-// Menu toggle
+// ============================================================================
+// UI
+// ============================================================================
+
 function setupMenuToggle() {
   menuToggle.addEventListener("click", () => {
     const isOpen = siteNav.classList.toggle("open");
@@ -314,17 +420,24 @@ function setupMenuToggle() {
   });
 }
 
-// Initialize app on load
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
 function initialize() {
+  // Countdown
   updateCountdown();
   setInterval(updateCountdown, 1000);
 
+  // Animations
   setupRevealAnimation();
   setupCounters();
+
+  // Marketplace
   setupBidding();
   setupMenuToggle();
 
-  // Event listeners: Filters
+  // Filter buttons
   filterButtons.forEach((button) => {
     button.addEventListener("click", () => {
       filterButtons.forEach((btn) => btn.classList.remove("active"));
@@ -334,23 +447,24 @@ function initialize() {
     });
   });
 
+  // Search input
   searchInput.addEventListener("input", applyFilters);
 
-  // Event listeners: Clear bids
+  // Clear bids
   clearBidsButton.addEventListener("click", handleClearBids);
 
-  // Event listeners: Signup modal
+  // Signup modal
   signupNavBtn.addEventListener("click", openSignupModal);
   closeModalBtn.addEventListener("click", closeSignupModal);
   signupFormModal.addEventListener("submit", handleSignup);
 
-  // Event listeners: Email signup
+  // Email signup
   document.getElementById("joinForm").addEventListener("submit", handleEmailSignup);
 
-  // Event listeners: Crypto
+  // Crypto
   connectWalletBtn.addEventListener("click", handleConnectWallet);
 
-  // Restore state on page load
+  // Restore session state
   currentUser = localStorage.getItem(CURRENT_USER_KEY);
   connectedWallet = localStorage.getItem(WALLET_STORAGE_KEY);
 
@@ -362,6 +476,7 @@ function initialize() {
     renderBidHistory();
   }
 
+  // Restore bids
   const saved = getStoredBids();
   cards.forEach((card) => {
     const listingId = card.getAttribute("data-id");
@@ -374,97 +489,12 @@ function initialize() {
   renderWatchlist();
   applyFilters();
 
+  // Footer year
   document.getElementById("year").textContent = String(new Date().getFullYear());
 }
 
-// Start app
-document.addEventListener("DOMContentLoaded", initialize
-    renderWatchlist();
-    showToast(`Bid placed on ${listingName}`);
-  });
-});
+// ============================================================================
+// START APP
+// ============================================================================
 
-clearBidsButton.addEventListener("click", () => {
-  localStorage.removeItem(BID_STORAGE_KEY);
-
-  cards.forEach((card) => {
-    const priceEl = card.querySelector("[data-price]");
-    const baseValue = Number(priceEl.getAttribute("data-base-price"));
-    priceEl.setAttribute("data-price", String(baseValue));
-    priceEl.textContent = formatPrice(baseValue);
-  });
-
-  renderWatchlist();
-  showToast("All bids cleared");
-});
-
-// Restore saved bids and apply stored price state on load.
-(() => {
-  const saved = getStoredBids();
-  cards.forEach((card) => {
-    const listingId = card.getAttribute("data-id");
-    const priceEl = card.querySelector("[data-price]");
-    if (!saved[listingId]) {
-      return;
-    }
-
-    priceEl.setAttribute("data-price", String(saved[listingId].amount));
-    priceEl.textContent = formatPrice(saved[listingId].amount);
-  });
-  renderWatchlist();
-  applyFilters();
-})();
-
-const cardsForTilt = document.querySelectorAll(".market-card");
-cardsForTilt.forEach((card) => {
-  card.addEventListener("mousemove", (event) => {
-    const rect = card.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    const rotateY = ((x / rect.width) - 0.5) * 8;
-    const rotateX = (0.5 - (y / rect.height)) * 8;
-
-    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-2px)`;
-  });
-
-  card.addEventListener("mouseleave", () => {
-    card.style.transform = "rotateX(0deg) rotateY(0deg) translateY(0)";
-  });
-});
-
-const heroPanel = document.getElementById("heroPanel");
-heroPanel.addEventListener("mousemove", (event) => {
-  const rect = heroPanel.getBoundingClientRect();
-  const x = ((event.clientX - rect.left) / rect.width) * 100;
-  const y = ((event.clientY - rect.top) / rect.height) * 100;
-  heroPanel.style.setProperty("--mx", `${x}%`);
-  heroPanel.style.setProperty("--my", `${y}%`);
-});
-
-const joinForm = document.getElementById("joinForm");
-const emailInput = document.getElementById("emailInput");
-const formMessage = document.getElementById("formMessage");
-
-joinForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const email = emailInput.value.trim();
-
-  if (!email || !email.includes("@")) {
-    formMessage.textContent = "Please enter a valid email address.";
-    return;
-  }
-
-  formMessage.textContent = `You're on the list, ${email}. Intel drops every Friday.`;
-  joinForm.reset();
-});
-
-const menuToggle = document.getElementById("menuToggle");
-const siteNav = document.getElementById("siteNav");
-
-menuToggle.addEventListener("click", () => {
-  const isOpen = siteNav.classList.toggle("open");
-  menuToggle.setAttribute("aria-expanded", String(isOpen));
-});
-
-document.getElementById("year").textContent = String(new Date().getFullYear());
+document.addEventListener("DOMContentLoaded", initialize);
