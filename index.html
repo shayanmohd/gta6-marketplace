@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Vice Syndicate - A GTA 6 inspired marketplace and intel hub." />
+  <title>Vice Syndicate | GTA 6 Marketplace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ambient-grid" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a href="#top" class="logo">Vice Syndicate</a>
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation" aria-expanded="false">Menu</button>
+    <nav class="site-nav" id="siteNav">
+      <a href="#marketplace">Marketplace</a>
+      <a href="#intel">Intel</a>
+      <a href="#hotspots">Hotspots</a>
+      <a href="#join">Join</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero reveal">
+      <div class="hero-panel" id="heroPanel">
+        <p class="eyebrow">Unofficial Fan-Made Experience</p>
+        <h1>GTA 6 Marketplace + Live Vice Intel</h1>
+        <p class="hero-copy">
+          Trade premium in-world assets, track faction signals, and explore city hotspots with a cinematic interface inspired by the neon pulse of Vice City.
+        </p>
+        <div class="hero-actions">
+          <a href="#marketplace" class="btn btn-primary">Enter Marketplace</a>
+          <a href="#intel" class="btn btn-ghost">See Intel Feed</a>
+        </div>
+        <div class="countdown-wrap">
+          <span>Community Countdown:</span>
+          <strong id="countdown">Loading...</strong>
+        </div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="orb orb-a"></div>
+        <div class="orb orb-b"></div>
+        <div class="city-card">
+          <p>Vice Grid Status</p>
+          <h3>Operational</h3>
+          <small>12 active sellers • 4 live drops</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats reveal" aria-label="Marketplace stats">
+      <article>
+        <h2 class="counter" data-target="1240">0</h2>
+        <p>Verified Listings</p>
+      </article>
+      <article>
+        <h2 class="counter" data-target="98">0</h2>
+        <p>Trust Score</p>
+      </article>
+      <article>
+        <h2 class="counter" data-target="37">0</h2>
+        <p>Faction Partners</p>
+      </article>
+      <article>
+        <h2 class="counter" data-target="24">0</h2>
+        <p>Live Drops / Day</p>
+      </article>
+    </section>
+
+    <section id="marketplace" class="marketplace reveal">
+      <div class="section-head">
+        <p class="eyebrow">Curated Listings</p>
+        <h2>Underground Market Board</h2>
+      </div>
+
+      <div class="filters">
+        <div class="filter-buttons" role="tablist" aria-label="Category filter">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="vehicles">Vehicles</button>
+          <button class="filter-btn" data-filter="gear">Gear</button>
+          <button class="filter-btn" data-filter="property">Property</button>
+          <button class="filter-btn" data-filter="fashion">Fashion</button>
+        </div>
+        <label class="search-wrap">
+          <span class="visually-hidden">Search listings</span>
+          <input id="searchInput" type="text" placeholder="Search listings..." />
+        </label>
+      </div>
+
+      <div class="market-toolbar">
+        <p id="marketSummary" class="market-summary">6 listings active</p>
+        <button id="clearBids" class="clear-btn" type="button">Clear My Bids</button>
+      </div>
+
+      <div class="card-grid" id="cardGrid">
+        <article class="market-card" data-category="vehicles" data-name="neon interceptor" data-id="neon-interceptor">
+          <p class="tag">Vehicles</p>
+          <h3>Neon Interceptor</h3>
+          <p>Street-tuned hypercar with heat-resistant plating and custom AI route assist.</p>
+          <div class="card-foot"><span data-price="1950000" data-base-price="1950000">$1,950,000</span><button type="button" class="bid-btn">Bid +5%</button></div>
+        </article>
+        <article class="market-card" data-category="gear" data-name="ghostlink comms" data-id="ghostlink-comms">
+          <p class="tag">Gear</p>
+          <h3>GhostLink Comms</h3>
+          <p>Encrypted squad comms with burst relay mode and scramble failover.</p>
+          <div class="card-foot"><span data-price="48000" data-base-price="48000">$48,000</span><button type="button" class="bid-btn">Bid +5%</button></div>
+        </article>
+        <article class="market-card" data-category="property" data-name="harbor penthouse" data-id="harbor-penthouse">
+          <p class="tag">Property</p>
+          <h3>Harbor Penthouse</h3>
+          <p>Top-floor vice harbor view with hidden vault room and rooftop landing pad.</p>
+          <div class="card-foot"><span data-price="6500000" data-base-price="6500000">$6,500,000</span><button type="button" class="bid-btn">Bid +5%</button></div>
+        </article>
+        <article class="market-card" data-category="fashion" data-name="midnight cartel set" data-id="midnight-cartel-set">
+          <p class="tag">Fashion</p>
+          <h3>Midnight Cartel Set</h3>
+          <p>Limited-run tactical streetwear with reactive fabric highlights.</p>
+          <div class="card-foot"><span data-price="17500" data-base-price="17500">$17,500</span><button type="button" class="bid-btn">Bid +5%</button></div>
+        </article>
+        <article class="market-card" data-category="vehicles" data-name="delta outrunner" data-id="delta-outrunner">
+          <p class="tag">Vehicles</p>
+          <h3>Delta Outrunner</h3>
+          <p>Offroad stealth bike designed for wetland escapes and rapid extraction.</p>
+          <div class="card-foot"><span data-price="340000" data-base-price="340000">$340,000</span><button type="button" class="bid-btn">Bid +5%</button></div>
+        </article>
+        <article class="market-card" data-category="gear" data-name="drone falcon x" data-id="drone-falcon-x">
+          <p class="tag">Gear</p>
+          <h3>Drone Falcon X</h3>
+          <p>Recon drone with thermal zoom and autonomous orbit security mode.</p>
+          <div class="card-foot"><span data-price="79900" data-base-price="79900">$79,900</span><button type="button" class="bid-btn">Bid +5%</button></div>
+        </article>
+      </div>
+
+      <aside class="watchlist" aria-live="polite">
+        <h3>My Active Bids</h3>
+        <ul id="watchlistItems"></ul>
+      </aside>
+    </section>
+
+    <section id="intel" class="intel reveal">
+      <div class="section-head">
+        <p class="eyebrow">Live Intel</p>
+        <h2>Vice City Briefing</h2>
+      </div>
+      <div class="timeline">
+        <article>
+          <span>08:30</span>
+          <p>Night market in Ocean Drive district now accepting secure contracts.</p>
+        </article>
+        <article>
+          <span>11:10</span>
+          <p>Faction truce signed in South Port; freight movement expected to surge.</p>
+        </article>
+        <article>
+          <span>15:45</span>
+          <p>High-value convoy route leaked; expect aggressive bidding on armored assets.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="hotspots" class="hotspots reveal">
+      <div class="section-head">
+        <p class="eyebrow">Map Overview</p>
+        <h2>Active Hotspots</h2>
+      </div>
+      <div class="hotspot-grid">
+        <article>
+          <h3>Vice Harbor</h3>
+          <p>Heavy cargo movement, premium vehicle flips, and nighttime auctions.</p>
+        </article>
+        <article>
+          <h3>Neon Strip</h3>
+          <p>Fashion and tech drops every 3 hours with dynamic price spikes.</p>
+        </article>
+        <article>
+          <h3>Bayou Sector</h3>
+          <p>Stealth gear exchange and specialist operators available for contracts.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="join" class="join reveal">
+      <div>
+        <p class="eyebrow">Community</p>
+        <h2>Get Weekly Drops + Intel</h2>
+      </div>
+      <form id="joinForm" class="join-form">
+        <input type="email" id="emailInput" placeholder="you@domain.com" required />
+        <button type="submit">Join Watchlist</button>
+      </form>
+      <p id="formMessage" class="form-message" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Vice Syndicate is an unofficial fan project inspired by GTA themes. Not affiliated with Rockstar Games.</p>
+    <p>&copy; <span id="year"></span> Vice Syndicate.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
