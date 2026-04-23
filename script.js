@@ -13,6 +13,7 @@ const searchInput = document.getElementById("searchInput");
 const marketSummary = document.getElementById("marketSummary");
 const watchlistItems = document.getElementById("watchlistItems");
 const clearBidsButton = document.getElementById("clearBids");
+const toast = document.getElementById("toast");
 
 // Modal and signup
 const signupModal = document.getElementById("signupModal");
@@ -130,13 +131,6 @@ function formatPrice(value) {
 }
 
 function showToast(message) {
-  let toast = document.querySelector(".market-toast");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.className = "market-toast";
-    document.body.appendChild(toast);
-  }
-
   toast.textContent = message;
   toast.classList.add("show");
   window.clearTimeout(showToast.timeout);
@@ -421,6 +415,28 @@ function setupMenuToggle() {
 }
 
 // ============================================================================
+// HERO PANEL EFFECTS
+// ============================================================================
+
+function setupHeroPanel() {
+  const heroPanel = document.getElementById("heroPanel");
+  if (!heroPanel) return;
+
+  heroPanel.addEventListener("mousemove", (e) => {
+    const rect = heroPanel.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    heroPanel.style.setProperty("--mx", `${x}%`);
+    heroPanel.style.setProperty("--my", `${y}%`);
+  });
+
+  heroPanel.addEventListener("mouseleave", () => {
+    heroPanel.style.setProperty("--mx", "30%");
+    heroPanel.style.setProperty("--my", "30%");
+  });
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -432,6 +448,7 @@ function initialize() {
   // Animations
   setupRevealAnimation();
   setupCounters();
+  setupHeroPanel();
 
   // Marketplace
   setupBidding();
