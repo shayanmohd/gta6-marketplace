@@ -4,32 +4,51 @@
 // ============================================================================
 
 // UI Element References
-const countdownEl = document.getElementById("countdown");
+const $ = (id) => document.getElementById(id);
+const countdownEl = $("countdown");
 const revealEls = document.querySelectorAll(".reveal");
 const counters = document.querySelectorAll(".counter");
 const filterButtons = document.querySelectorAll(".filter-btn");
 const cards = document.querySelectorAll(".market-card");
-const searchInput = document.getElementById("searchInput");
-const marketSummary = document.getElementById("marketSummary");
-const watchlistItems = document.getElementById("watchlistItems");
-const clearBidsButton = document.getElementById("clearBids");
-const toast = document.getElementById("toast");
+const searchInput = $("searchInput");
+const marketSummary = $("marketSummary");
+const watchlistItems = $("watchlistItems");
+const clearBidsButton = $("clearBids");
+const toast = $("toast");
 
 // Modal and signup
-const signupModal = document.getElementById("signupModal");
-const closeModalBtn = document.getElementById("closeModal");
-const signupNavBtn = document.getElementById("signupNavBtn");
-const signupFormModal = document.getElementById("signupFormModal");
-const signupMessage = document.getElementById("signupMessage");
+const signupModal = $("signupModal");
+const closeModalBtn = $("closeModal");
+const signupNavBtn = $("signupNavBtn");
+const signupFormModal = $("signupFormModal");
+const loginFormModal = $("loginFormModal");
+const signupMessage = $("signupMessage");
+const signupView = $("signupView");
+const loginView = $("loginView");
+const showLoginBtn = $("showLogin");
+const showSignupBtn = $("showSignup");
+
+// User profile elements
+const userProfile = $("userProfile");
+const profileToggle = $("profileToggle");
+const profileDropdown = $("profileDropdown");
+const userAvatar = $("userAvatar");
+const userName = $("userName");
+const dropdownName = $("dropdownName");
+const dropdownEmail = $("dropdownEmail");
+const userBidCount = $("userBidCount");
+const userJoinDate = $("userJoinDate");
+const logoutBtn = $("logoutBtn");
+const backToTopBtn = $("backToTop");
 
 // Crypto elements
-const connectWalletBtn = document.getElementById("connectWallet");
-const walletStatus = document.getElementById("walletStatus");
-const bidHistory = document.getElementById("bidHistory");
+const connectWalletBtn = $("connectWallet");
+const walletStatus = $("walletStatus");
+const bidHistory = $("bidHistory");
 
 // Menu toggle
-const menuToggle = document.getElementById("menuToggle");
-const siteNav = document.getElementById("siteNav");
+const menuToggle = $("menuToggle");
+const siteNav = $("siteNav");
 
 // Storage keys
 const BID_STORAGE_KEY = "vice-syndicate-bids";
@@ -194,30 +213,35 @@ function simpleHash(str) {
 
 function handleSignup(e) {
   e.preventDefault();
+  signupMessage.className = "form-message";
 
-  const username = document.getElementById("username").value.trim();
-  const email = document.getElementById("signupEmail").value.trim();
-  const password = document.getElementById("password").value;
-  const confirmPassword = document.getElementById("confirmPassword").value;
+  const username = $("username").value.trim();
+  const email = $("signupEmail").value.trim();
+  const password = $("password").value;
+  const confirmPassword = $("confirmPassword").value;
 
   if (!username || !email || !password) {
-    signupMessage.textContent = "All fields required.";
+    signupMessage.textContent = "All fields are required.";
+    signupMessage.classList.add("error");
     return;
   }
 
   if (password !== confirmPassword) {
     signupMessage.textContent = "Passwords do not match.";
+    signupMessage.classList.add("error");
     return;
   }
 
   if (password.length < 8) {
     signupMessage.textContent = "Password must be at least 8 characters.";
+    signupMessage.classList.add("error");
     return;
   }
 
   const users = getAllUsers();
   if (users[username]) {
     signupMessage.textContent = "Username already taken.";
+    signupMessage.classList.add("error");
     return;
   }
 
@@ -227,22 +251,117 @@ function handleSignup(e) {
   currentUser = username;
   localStorage.setItem(CURRENT_USER_KEY, username);
 
-  signupMessage.textContent = `Welcome, ${username}!`;
+  signupMessage.textContent = `Account created! Welcome, ${username}`;
+  signupMessage.classList.add("success");
   setTimeout(() => {
     signupModal.classList.remove("open");
     signupFormModal.reset();
+    signupMessage.textContent = "";
+    updateAuthUI();
     renderWatchlist();
-    showToast(`Account created! Welcome, ${username}`);
-  }, 1000);
+    showToast(`Welcome to Vice Syndicate, ${username}!`);
+  }, 800);
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  signupMessage.className = "form-message";
+
+  const username = $("loginUsername").value.trim();
+  const password = $("loginPassword").value;
+
+  if (!username || !password) {
+    signupMessage.textContent = "All fields are required.";
+    signupMessage.classList.add("error");
+    return;
+  }
+
+  const users = getAllUsers();
+  if (!users[username]) {
+    signupMessage.textContent = "Account not found.";
+    signupMessage.classList.add("error");
+    return;
+  }
+
+  const passwordHash = simpleHash(password);
+  if (users[username].passwordHash !== passwordHash) {
+    signupMessage.textContent = "Incorrect password.";
+    signupMessage.classList.add("error");
+    return;
+  }
+
+  currentUser = username;
+  localStorage.setItem(CURRENT_USER_KEY, username);
+
+  signupMessage.textContent = `Welcome back, ${username}!`;
+  signupMessage.classList.add("success");
+  setTimeout(() => {
+    signupModal.classList.remove("open");
+    loginFormModal.reset();
+    signupMessage.textContent = "";
+    updateAuthUI();
+    renderWatchlist();
+    showToast(`Welcome back, ${username}!`);
+  }, 800);
+}
+
+function handleLogout() {
+  currentUser = null;
+  localStorage.removeItem(CURRENT_USER_KEY);
+  profileDropdown.classList.remove("open");
+  updateAuthUI();
+  showToast("Logged out successfully");
+}
+
+function updateAuthUI() {
+  if (currentUser) {
+    signupNavBtn.classList.add("hidden");
+    userProfile.classList.remove("hidden");
+
+    const initial = currentUser.charAt(0).toUpperCase();
+    userAvatar.textContent = initial;
+    userName.textContent = currentUser;
+    dropdownName.textContent = currentUser;
+
+    const users = getAllUsers();
+    const userData = users[currentUser];
+    if (userData) {
+      dropdownEmail.textContent = userData.email || "";
+      if (userData.createdAt) {
+        const d = new Date(userData.createdAt);
+        userJoinDate.textContent = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      }
+    }
+
+    const bids = getStoredBids();
+    userBidCount.textContent = String(Object.keys(bids).length);
+  } else {
+    signupNavBtn.classList.remove("hidden");
+    userProfile.classList.add("hidden");
+    profileDropdown.classList.remove("open");
+  }
 }
 
 function openSignupModal() {
+  signupView.classList.remove("hidden");
+  loginView.classList.add("hidden");
+  signupMessage.textContent = "";
+  signupMessage.className = "form-message";
+  signupModal.classList.add("open");
+}
+
+function openLoginModal() {
+  loginView.classList.remove("hidden");
+  signupView.classList.add("hidden");
+  signupMessage.textContent = "";
+  signupMessage.className = "form-message";
   signupModal.classList.add("open");
 }
 
 function closeSignupModal() {
   signupModal.classList.remove("open");
   signupMessage.textContent = "";
+  signupMessage.className = "form-message";
 }
 
 // ============================================================================
@@ -316,6 +435,7 @@ function setupBidding() {
         };
         setStoredBids(bids);
         renderWatchlist();
+        updateAuthUI();
         showToast(`Bid placed on ${listingName}`);
       } else {
         openSignupModal();
@@ -412,6 +532,14 @@ function setupMenuToggle() {
     const isOpen = siteNav.classList.toggle("open");
     menuToggle.setAttribute("aria-expanded", String(isOpen));
   });
+
+  // Close mobile nav on link click
+  siteNav.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      siteNav.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+    });
+  });
 }
 
 // ============================================================================
@@ -419,7 +547,7 @@ function setupMenuToggle() {
 // ============================================================================
 
 function setupHeroPanel() {
-  const heroPanel = document.getElementById("heroPanel");
+  const heroPanel = $("heroPanel");
   if (!heroPanel) return;
 
   heroPanel.addEventListener("mousemove", (e) => {
@@ -437,6 +565,44 @@ function setupHeroPanel() {
 }
 
 // ============================================================================
+// SCROLL EFFECTS
+// ============================================================================
+
+function setupScrollEffects() {
+  const header = document.querySelector(".site-header");
+
+  window.addEventListener("scroll", () => {
+    // Header shadow on scroll
+    header.classList.toggle("scrolled", window.scrollY > 50);
+
+    // Back to top button visibility
+    backToTopBtn.classList.toggle("visible", window.scrollY > 400);
+  }, { passive: true });
+
+  backToTopBtn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+
+// ============================================================================
+// PROFILE DROPDOWN
+// ============================================================================
+
+function setupProfileDropdown() {
+  profileToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    profileDropdown.classList.toggle("open");
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!profileDropdown.contains(e.target) && !profileToggle.contains(e.target)) {
+      profileDropdown.classList.remove("open");
+    }
+  });
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -449,6 +615,8 @@ function initialize() {
   setupRevealAnimation();
   setupCounters();
   setupHeroPanel();
+  setupScrollEffects();
+  setupProfileDropdown();
 
   // Marketplace
   setupBidding();
@@ -474,9 +642,38 @@ function initialize() {
   signupNavBtn.addEventListener("click", openSignupModal);
   closeModalBtn.addEventListener("click", closeSignupModal);
   signupFormModal.addEventListener("submit", handleSignup);
+  loginFormModal.addEventListener("submit", handleLogin);
+  logoutBtn.addEventListener("click", handleLogout);
+
+  // Toggle between login and signup views
+  showLoginBtn.addEventListener("click", () => {
+    signupView.classList.add("hidden");
+    loginView.classList.remove("hidden");
+    signupMessage.textContent = "";
+    signupMessage.className = "form-message";
+  });
+  showSignupBtn.addEventListener("click", () => {
+    loginView.classList.add("hidden");
+    signupView.classList.remove("hidden");
+    signupMessage.textContent = "";
+    signupMessage.className = "form-message";
+  });
+
+  // Close modal on backdrop click
+  signupModal.addEventListener("click", (e) => {
+    if (e.target === signupModal) closeSignupModal();
+  });
+
+  // Close modal on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeSignupModal();
+      profileDropdown.classList.remove("open");
+    }
+  });
 
   // Email signup
-  document.getElementById("joinForm").addEventListener("submit", handleEmailSignup);
+  $("joinForm").addEventListener("submit", handleEmailSignup);
 
   // Crypto
   connectWalletBtn.addEventListener("click", handleConnectWallet);
@@ -484,6 +681,7 @@ function initialize() {
   // Restore session state
   currentUser = localStorage.getItem(CURRENT_USER_KEY);
   connectedWallet = localStorage.getItem(WALLET_STORAGE_KEY);
+  updateAuthUI();
 
   if (connectedWallet) {
     walletStatus.classList.add("active");
@@ -507,7 +705,7 @@ function initialize() {
   applyFilters();
 
   // Footer year
-  document.getElementById("year").textContent = String(new Date().getFullYear());
+  $("year").textContent = String(new Date().getFullYear());
 }
 
 // ============================================================================

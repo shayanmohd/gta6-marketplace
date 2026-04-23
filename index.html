@@ -30,7 +30,29 @@
       <a href="#intel">Intel</a>
       <a href="#hotspots">Hotspots</a>
       <a href="#join">Join</a>
-      <button id="signupNavBtn" type="button" class="btn-signup-nav">Sign Up</button>
+      <div id="authArea" class="auth-area">
+        <button id="signupNavBtn" type="button" class="btn-signup-nav">Sign Up</button>
+        <div id="userProfile" class="user-profile hidden">
+          <button id="profileToggle" type="button" class="profile-toggle">
+            <span id="userAvatar" class="user-avatar">U</span>
+            <span id="userName" class="user-name">User</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div id="profileDropdown" class="profile-dropdown">
+            <div class="dropdown-header">
+              <span id="dropdownName" class="dropdown-name">Username</span>
+              <span id="dropdownEmail" class="dropdown-email">user@email.com</span>
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-stats">
+              <div><strong id="userBidCount">0</strong> Active Bids</div>
+              <div><strong id="userJoinDate">—</strong> Joined</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button id="logoutBtn" type="button" class="dropdown-item logout-btn">Log Out</button>
+          </div>
+        </div>
+      </div>
     </nav>
   </header>
 
@@ -267,20 +289,37 @@
   <div id="signupModal" class="modal">
     <div class="modal-content">
       <button id="closeModal" type="button" class="modal-close" aria-label="Close">&times;</button>
-      <h2>Join Vice Syndicate</h2>
-      <p>Create your account to access exclusive marketplace features and crypto bidding.</p>
-      <form id="signupFormModal" class="signup-form">
-        <input type="text" id="username" placeholder="Username" required />
-        <input type="email" id="signupEmail" placeholder="Email" required />
-        <input type="password" id="password" placeholder="Password (min 8 chars)" minlength="8" required />
-        <input type="password" id="confirmPassword" placeholder="Confirm Password" minlength="8" required />
-        <button type="submit" class="btn btn-primary">Create Account</button>
-      </form>
+      <div id="signupView">
+        <h2>Join Vice Syndicate</h2>
+        <p>Create your account to access exclusive marketplace features and crypto bidding.</p>
+        <form id="signupFormModal" class="signup-form">
+          <input type="text" id="username" placeholder="Username" required autocomplete="username" />
+          <input type="email" id="signupEmail" placeholder="Email" required autocomplete="email" />
+          <input type="password" id="password" placeholder="Password (min 8 chars)" minlength="8" required autocomplete="new-password" />
+          <input type="password" id="confirmPassword" placeholder="Confirm Password" minlength="8" required autocomplete="new-password" />
+          <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+        <p class="modal-switch">Already have an account? <button type="button" id="showLogin" class="link-btn">Log In</button></p>
+      </div>
+      <div id="loginView" class="hidden">
+        <h2>Welcome Back</h2>
+        <p>Log in to your Vice Syndicate account.</p>
+        <form id="loginFormModal" class="signup-form">
+          <input type="text" id="loginUsername" placeholder="Username" required autocomplete="username" />
+          <input type="password" id="loginPassword" placeholder="Password" required autocomplete="current-password" />
+          <button type="submit" class="btn btn-primary">Log In</button>
+        </form>
+        <p class="modal-switch">Don't have an account? <button type="button" id="showSignup" class="link-btn">Sign Up</button></p>
+      </div>
       <p id="signupMessage" class="form-message"></p>
     </div>
   </div>
 
   <div class="market-toast" id="toast"></div>
+
+  <button id="backToTop" class="back-to-top" aria-label="Back to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
   <script src="script.js"></script>
