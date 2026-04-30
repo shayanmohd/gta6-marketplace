@@ -293,3 +293,60 @@ Vice Syndicate is an **unofficial fan project** inspired by GTA themes. Not affi
 
 Built with ❤️ using vanilla JavaScript, CSS3, and HTML5. No frameworks. No build step. Just pure web tech.
 
+---
+
+
+
+Serverless Supabase Setup (No Backend Required)
+-----------------------------------------------
+This project is now 100% serverless and runs entirely from GitHub Pages (or any static host) using Supabase for authentication and data storage.
+
+Quick start
+1. Create a free project at https://app.supabase.com
+2. In your project, go to the SQL Editor and run the SQL in `supabase_migration.sql` to create the required tables.
+3. In Project Settings → API, copy your `SUPABASE_URL` and `anon` public key.
+4. In `index.html`, set:
+  ```js
+  window.SUPABASE_URL = 'https://tjymcnjlfmnamvnznhln.supabase.co';
+  window.SUPABASE_ANON_KEY = 'sb_publishable_-AdMefXcCPBWRgLs6uzjLA_iYhM0ctB';
+  ```
+5. Push your site to GitHub Pages (or any static host).
+
+Features
+- Email/password and social login (Google, GitHub, etc.)
+- All auctions and bids are stored in your Supabase database
+- No backend server or Node.js required
+
+Security notes
+- Only use the `anon` public key in your front-end. Never expose the service role key.
+
+To customize tables, see `supabase_migration.sql`.
+
+---
+
+Test Checklist
+==============
+1. **Sign up with email/password**
+  - Go to the site, click Sign Up, and create a new account.
+  - Confirm you can log in and see your user info.
+2. **Sign in with email/password**
+  - Log out, then log in with your credentials.
+3. **Try social login**
+  - Use Google or GitHub login (if enabled in your Supabase project).
+4. **Place a bid**
+  - Click Bid +5% on any listing. Confirm your bid appears in “My Active Bids.”
+5. **Clear bids**
+  - Click “Clear My Bids.” Confirm all bids are removed and prices reset.
+6. **Persistence**
+  - Refresh the page. Your session and bids should persist.
+7. **Multiple users**
+  - Sign up with a different email. Confirm each user’s bids are isolated.
+8. **Mobile/responsive**
+  - Test on mobile and desktop for layout and login.
+9. **API status**
+  - Confirm the API status indicator shows “Online.”
+
+If all pass, your serverless marketplace is live!
+
+
+

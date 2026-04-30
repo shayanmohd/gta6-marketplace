@@ -322,6 +322,14 @@
   </button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script>
+    // Supabase project URL and anon/public key
+    window.SUPABASE_URL = 'https://tjymcnjlfmnamvnznhln.supabase.co';
+    window.SUPABASE_ANON_KEY = 'sb_publishable_-AdMefXcCPBWRgLs6uzjLA_iYhM0ctB';
+  </script>
+  <div id="apiStatus" class="api-status" style="position:fixed;bottom:10px;right:10px;z-index:9999;background:#222;color:#fff;padding:6px 14px;border-radius:6px;font-size:14px;opacity:0.85;display:none;">API: <span id="apiStatusText">Checking...</span></div>
   <script src="script.js"></script>
 </body>
 </html>

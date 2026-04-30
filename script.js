@@ -55,6 +55,35 @@ const BID_STORAGE_KEY = "vice-syndicate-bids";
 const USERS_STORAGE_KEY = "vice-syndicate-users";
 const CURRENT_USER_KEY = "vice-syndicate-current-user";
 const WALLET_STORAGE_KEY = "vice-syndicate-wallet";
+const AUTH_TOKEN_KEY = "vice-syndicate-token";
+const REMOTE_MAP_KEY = "vice-syndicate-remote-map";
+
+
+// Supabase client setup
+const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+function setApiStatus(status, color) {
+  const el = document.getElementById('apiStatus');
+  const txt = document.getElementById('apiStatusText');
+  if (!el || !txt) return;
+  el.style.display = 'block';
+  txt.textContent = status;
+  el.style.background = color || '#222';
+}
+
+async function probeApiHealth() {
+  // For serverless, just check Supabase connection
+  try {
+    const { error } = await supabase.from('users').select('id').limit(1);
+    if (!error) {
+      setApiStatus('Online', '#1db954');
+    } else {
+      setApiStatus('Offline', '#e74c3c');
+    }
+  } catch {
+    setApiStatus('Offline', '#e74c3c');
+  }
+}
 
 // State
 let activeFilter = "all";
@@ -77,103 +106,83 @@ function updateCountdown() {
     return;
   }
 
-  const day = 1000 * 60 * 60 * 24;
-  const hour = 1000 * 60 * 60;
-  const minute = 1000 * 60;
 
-  const days = Math.floor(diff / day);
-  const hours = Math.floor((diff % day) / hour);
-  const minutes = Math.floor((diff % hour) / minute);
+  async function handleSignup(e) {
+    e.preventDefault();
+    signupMessage.className = "form-message";
 
-  countdownEl.textContent = `${days}d ${hours}h ${minutes}m`;
-}
+    const username = $("username").value.trim();
+    const email = $("signupEmail").value.trim();
+    const password = $("password").value;
+    const confirmPassword = $("confirmPassword").value;
 
-// ============================================================================
-// ANIMATIONS
-// ============================================================================
+    if (!username || !email || !password) {
+      signupMessage.textContent = "All fields are required.";
+      signupMessage.classList.add("error");
+      return;
+    }
+    if (password !== confirmPassword) {
+      signupMessage.textContent = "Passwords do not match.";
+      signupMessage.classList.add("error");
+      return;
+    }
+    if (password.length < 8) {
+      signupMessage.textContent = "Password must be at least 8 characters.";
+      signupMessage.classList.add("error");
+      return;
+    }
 
-function setupRevealAnimation() {
-  const revealObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-          revealObserver.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.1 }
-  );
-
-  revealEls.forEach((el) => revealObserver.observe(el));
-}
-
-function setupCounters() {
-  const counterObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-
-        const el = entry.target;
-        const target = Number(el.getAttribute("data-target"));
-        let count = 0;
-        const duration = 1000;
-        const steps = 40;
-        const increment = target / steps;
-        const interval = duration / steps;
-
-        const timer = setInterval(() => {
-          count += increment;
-          if (count >= target) {
-            el.textContent = `${target}${target === 98 ? "%" : "+"}`;
-            clearInterval(timer);
-            return;
-          }
-          el.textContent = `${Math.floor(count)}`;
-        }, interval);
-
-        counterObserver.unobserve(el);
-      });
-    },
-    { threshold: 0.4 }
-  );
-
-  counters.forEach((counter) => counterObserver.observe(counter));
-}
-
-// ============================================================================
-// UTILITIES
-// ============================================================================
-
-function formatPrice(value) {
-  return `$${value.toLocaleString("en-US")}`;
-}
-
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("show");
-  window.clearTimeout(showToast.timeout);
-  showToast.timeout = window.setTimeout(() => {
-    toast.classList.remove("show");
-  }, 1800);
-}
-
-// ============================================================================
-// STORAGE
-// ============================================================================
-
-function getStoredBids() {
-  const raw = localStorage.getItem(BID_STORAGE_KEY);
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return {};
+    // Supabase email/password signup
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
+    if (error) {
+      signupMessage.textContent = error.message || 'Registration failed';
+      signupMessage.classList.add('error');
+      return;
+    }
+    currentUser = email;
+    localStorage.setItem(CURRENT_USER_KEY, currentUser);
+    signupMessage.textContent = `Account created! Welcome, ${currentUser}`;
+    signupMessage.classList.add('success');
+    setTimeout(() => {
+      signupModal.classList.remove('open');
+      signupFormModal.reset();
+      signupMessage.textContent = '';
+      updateAuthUI();
+      renderWatchlist();
+      showToast(`Welcome to Vice Syndicate, ${currentUser}!`);
+    }, 800);
   }
+
+
+// Supabase-based bids (fetch all bids for current user)
+async function getStoredBids() {
+  if (!currentUser) return {};
+  const { data, error } = await supabase.from('bids').select('*').eq('user_email', currentUser);
+  if (error || !data) return {};
+  // Map by listingId for compatibility
+  const bids = {};
+  data.forEach(bid => {
+    bids[bid.listing_id] = {
+      id: bid.listing_id,
+      name: bid.listing_name,
+      amount: bid.amount,
+      timestamp: new Date(bid.created_at).getTime(),
+      user: bid.user_email
+    };
+  });
+  return bids;
 }
 
-function setStoredBids(bids) {
-  localStorage.setItem(BID_STORAGE_KEY, JSON.stringify(bids));
+async function setStoredBids(listingId, bidObj) {
+  // Upsert bid for current user
+  if (!currentUser) return;
+  await supabase.from('bids').upsert({
+    listing_id: listingId,
+    listing_name: bidObj.name,
+    amount: bidObj.amount,
+    user_email: currentUser,
+    created_at: new Date().toISOString()
+  }, { onConflict: ['listing_id', 'user_email'] });
 }
 
 function getAllUsers() {
@@ -238,6 +247,39 @@ function handleSignup(e) {
     return;
   }
 
+  // If backend API is available, register via API (email/password). Otherwise fallback to localStorage.
+  if (useApi) {
+    fetch((apiRoot || '') + '/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    }).then(r => r.json()).then(data => {
+      if (data.error) {
+        signupMessage.textContent = data.error;
+        signupMessage.classList.add('error');
+        return;
+      }
+      const token = data.token;
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+      currentUser = data.user.email || data.user.id;
+      localStorage.setItem(CURRENT_USER_KEY, currentUser);
+      signupMessage.textContent = `Account created! Welcome, ${currentUser}`;
+      signupMessage.classList.add('success');
+      setTimeout(() => {
+        signupModal.classList.remove('open');
+        signupFormModal.reset();
+        signupMessage.textContent = '';
+        updateAuthUI();
+        renderWatchlist();
+        showToast(`Welcome to Vice Syndicate, ${currentUser}!`);
+      }, 800);
+    }).catch(err => {
+      signupMessage.textContent = 'Registration failed';
+      signupMessage.classList.add('error');
+    });
+    return;
+  }
+
   const users = getAllUsers();
   if (users[username]) {
     signupMessage.textContent = "Username already taken.";
@@ -263,54 +305,56 @@ function handleSignup(e) {
   }, 800);
 }
 
-function handleLogin(e) {
+
+async function handleLogin(e) {
   e.preventDefault();
   signupMessage.className = "form-message";
 
-  const username = $("loginUsername").value.trim();
+  const email = $("loginUsername").value.trim();
   const password = $("loginPassword").value;
 
-  if (!username || !password) {
+  if (!email || !password) {
     signupMessage.textContent = "All fields are required.";
     signupMessage.classList.add("error");
     return;
   }
 
-  const users = getAllUsers();
-  if (!users[username]) {
-    signupMessage.textContent = "Account not found.";
-    signupMessage.classList.add("error");
+  // Supabase email/password login
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    signupMessage.textContent = error.message || 'Login failed';
+    signupMessage.classList.add('error');
     return;
   }
-
-  const passwordHash = simpleHash(password);
-  if (users[username].passwordHash !== passwordHash) {
-    signupMessage.textContent = "Incorrect password.";
-    signupMessage.classList.add("error");
-    return;
-  }
-
-  currentUser = username;
-  localStorage.setItem(CURRENT_USER_KEY, username);
-
-  signupMessage.textContent = `Welcome back, ${username}!`;
-  signupMessage.classList.add("success");
+  currentUser = email;
+  localStorage.setItem(CURRENT_USER_KEY, currentUser);
+  signupMessage.textContent = `Welcome back, ${currentUser}!`;
+  signupMessage.classList.add('success');
   setTimeout(() => {
-    signupModal.classList.remove("open");
+    signupModal.classList.remove('open');
     loginFormModal.reset();
-    signupMessage.textContent = "";
+    signupMessage.textContent = '';
     updateAuthUI();
     renderWatchlist();
-    showToast(`Welcome back, ${username}!`);
+    showToast(`Welcome back, ${currentUser}!`);
   }, 800);
 }
 
-function handleLogout() {
+
+async function handleLogout() {
+  await supabase.auth.signOut();
   currentUser = null;
   localStorage.removeItem(CURRENT_USER_KEY);
   profileDropdown.classList.remove("open");
   updateAuthUI();
   showToast("Logged out successfully");
+}
+// Social login (Google, GitHub, etc.)
+async function handleSocialLogin(provider) {
+  const { error } = await supabase.auth.signInWithOAuth({ provider });
+  if (error) {
+    showToast('Social login failed');
+  }
 }
 
 function updateAuthUI() {
@@ -368,18 +412,17 @@ function closeSignupModal() {
 // MARKETPLACE
 // ============================================================================
 
-function renderWatchlist() {
-  const bids = getStoredBids();
+
+async function renderWatchlist() {
+  const bids = await getStoredBids();
   const entries = Object.entries(bids);
   watchlistItems.innerHTML = "";
-
   if (entries.length === 0) {
     const emptyItem = document.createElement("li");
     emptyItem.textContent = "No bids yet. Hit Bid +5% on any listing.";
     watchlistItems.appendChild(emptyItem);
     return;
   }
-
   entries
     .sort((a, b) => b[1].timestamp - a[1].timestamp)
     .forEach(([_, bid]) => {
@@ -411,6 +454,7 @@ function applyFilters() {
   marketSummary.textContent = `${visibleCount} listing${visibleCount === 1 ? "" : "s"} active`;
 }
 
+
 function setupBidding() {
   cards.forEach((card) => {
     const priceEl = card.querySelector("[data-price]");
@@ -418,44 +462,44 @@ function setupBidding() {
     const listingId = card.getAttribute("data-id");
     const listingName = card.querySelector("h3").textContent;
 
-    bidBtn.addEventListener("click", () => {
-      if (currentUser) {
-        const currentPrice = Number(priceEl.getAttribute("data-price"));
-        const nextBid = Math.round(currentPrice * 1.05);
-        priceEl.setAttribute("data-price", String(nextBid));
-        priceEl.textContent = formatPrice(nextBid);
-
-        const bids = getStoredBids();
-        bids[listingId] = {
-          id: listingId,
-          name: listingName,
-          amount: nextBid,
-          timestamp: Date.now(),
-          user: currentUser
-        };
-        setStoredBids(bids);
-        renderWatchlist();
-        updateAuthUI();
-        showToast(`Bid placed on ${listingName}`);
-      } else {
+    bidBtn.addEventListener("click", async () => {
+      if (!currentUser) {
         openSignupModal();
         showToast("Sign up to place bids!");
+        return;
       }
+      const currentPrice = Number(priceEl.getAttribute("data-price"));
+      const nextBid = Math.round(currentPrice * 1.05);
+      priceEl.setAttribute("data-price", String(nextBid));
+      priceEl.textContent = formatPrice(nextBid);
+
+      // Store bid in Supabase
+      await setStoredBids(listingId, {
+        id: listingId,
+        name: listingName,
+        amount: nextBid,
+        timestamp: Date.now(),
+        user: currentUser
+      });
+      await renderWatchlist();
+      updateAuthUI();
+      showToast(`Bid placed on ${listingName}`);
     });
   });
 }
 
-function handleClearBids() {
-  localStorage.removeItem(BID_STORAGE_KEY);
 
+async function handleClearBids() {
+  if (!currentUser) return;
+  // Delete all bids for current user
+  await supabase.from('bids').delete().eq('user_email', currentUser);
   cards.forEach((card) => {
     const priceEl = card.querySelector("[data-price]");
     const baseValue = Number(priceEl.getAttribute("data-base-price"));
     priceEl.setAttribute("data-price", String(baseValue));
     priceEl.textContent = formatPrice(baseValue);
   });
-
-  renderWatchlist();
+  await renderWatchlist();
   showToast("All bids cleared");
 }
 
@@ -486,15 +530,14 @@ async function handleConnectWallet() {
   }
 }
 
-function renderBidHistory() {
-  const bids = getStoredBids();
-  const entries = Object.entries(bids);
 
+async function renderBidHistory() {
+  const bids = await getStoredBids();
+  const entries = Object.entries(bids);
   if (entries.length === 0) {
     bidHistory.innerHTML = "";
     return;
   }
-
   let html = "<h4>Recent Bids (Wallet)</h4><ul>";
   entries
     .sort((a, b) => b[1].timestamp - a[1].timestamp)
@@ -606,7 +649,10 @@ function setupProfileDropdown() {
 // INITIALIZATION
 // ============================================================================
 
-function initialize() {
+
+async function initialize() {
+  // Probe API health and show status
+  probeApiHealth();
   // Countdown
   updateCountdown();
   setInterval(updateCountdown, 1000);
@@ -688,11 +734,11 @@ function initialize() {
     walletStatus.innerHTML = `
       <strong>Connected:</strong> ${connectedWallet.substring(0, 6)}...${connectedWallet.substring(38)}
     `;
-    renderBidHistory();
+    await renderBidHistory();
   }
 
   // Restore bids
-  const saved = getStoredBids();
+  const saved = await getStoredBids();
   cards.forEach((card) => {
     const listingId = card.getAttribute("data-id");
     const priceEl = card.querySelector("[data-price]");
@@ -701,7 +747,7 @@ function initialize() {
     priceEl.textContent = formatPrice(saved[listingId].amount);
   });
 
-  renderWatchlist();
+  await renderWatchlist();
   applyFilters();
 
   // Footer year
