@@ -52,7 +52,6 @@ const siteNav = $("siteNav");
 
 // Storage keys
 const BID_STORAGE_KEY = "vice-syndicate-bids";
-const USERS_STORAGE_KEY = "vice-syndicate-users";
 const CURRENT_USER_KEY = "vice-syndicate-current-user";
 const WALLET_STORAGE_KEY = "vice-syndicate-wallet";
 const AUTH_TOKEN_KEY = "vice-syndicate-token";
@@ -182,125 +181,6 @@ async function setStoredBids(listingId, bidObj) {
     amount: bidObj.amount,
     user_email: currentUser,
     created_at: new Date().toISOString()
-  }, { onConflict: ['listing_id', 'user_email'] });
-}
-
-function getAllUsers() {
-  const raw = localStorage.getItem(USERS_STORAGE_KEY);
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-}
-
-function saveUser(username, email, passwordHash) {
-  const users = getAllUsers();
-  users[username] = {
-    username,
-    email,
-    passwordHash,
-    createdAt: Date.now()
-  };
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-}
-
-// ============================================================================
-// AUTHENTICATION
-// ============================================================================
-
-function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return String(hash);
-}
-
-function handleSignup(e) {
-  e.preventDefault();
-  signupMessage.className = "form-message";
-
-  const username = $("username").value.trim();
-  const email = $("signupEmail").value.trim();
-  const password = $("password").value;
-  const confirmPassword = $("confirmPassword").value;
-
-  if (!username || !email || !password) {
-    signupMessage.textContent = "All fields are required.";
-    signupMessage.classList.add("error");
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    signupMessage.textContent = "Passwords do not match.";
-    signupMessage.classList.add("error");
-    return;
-  }
-
-  if (password.length < 8) {
-    signupMessage.textContent = "Password must be at least 8 characters.";
-    signupMessage.classList.add("error");
-    return;
-  }
-
-  // If backend API is available, register via API (email/password). Otherwise fallback to localStorage.
-  if (useApi) {
-    fetch((apiRoot || '') + '/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    }).then(r => r.json()).then(data => {
-      if (data.error) {
-        signupMessage.textContent = data.error;
-        signupMessage.classList.add('error');
-        return;
-      }
-      const token = data.token;
-      localStorage.setItem(AUTH_TOKEN_KEY, token);
-      currentUser = data.user.email || data.user.id;
-      localStorage.setItem(CURRENT_USER_KEY, currentUser);
-      signupMessage.textContent = `Account created! Welcome, ${currentUser}`;
-      signupMessage.classList.add('success');
-      setTimeout(() => {
-        signupModal.classList.remove('open');
-        signupFormModal.reset();
-        signupMessage.textContent = '';
-        updateAuthUI();
-        renderWatchlist();
-        showToast(`Welcome to Vice Syndicate, ${currentUser}!`);
-      }, 800);
-    }).catch(err => {
-      signupMessage.textContent = 'Registration failed';
-      signupMessage.classList.add('error');
-    });
-    return;
-  }
-
-  const users = getAllUsers();
-  if (users[username]) {
-    signupMessage.textContent = "Username already taken.";
-    signupMessage.classList.add("error");
-    return;
-  }
-
-  const passwordHash = simpleHash(password);
-  saveUser(username, email, passwordHash);
-
-  currentUser = username;
-  localStorage.setItem(CURRENT_USER_KEY, username);
-
-  signupMessage.textContent = `Account created! Welcome, ${username}`;
-  signupMessage.classList.add("success");
-  setTimeout(() => {
-    signupModal.classList.remove("open");
-    signupFormModal.reset();
-    signupMessage.textContent = "";
-    updateAuthUI();
-    renderWatchlist();
     showToast(`Welcome to Vice Syndicate, ${username}!`);
   }, 800);
 }
@@ -310,7 +190,7 @@ async function handleLogin(e) {
   e.preventDefault();
   signupMessage.className = "form-message";
 
-  const email = $("loginUsername").value.trim();
+  const email = $("loginEmail").value.trim();
   const password = $("loginPassword").value;
 
   if (!email || !password) {
@@ -357,7 +237,7 @@ async function handleSocialLogin(provider) {
   }
 }
 
-function updateAuthUI() {
+async function updateAuthUI() {
   if (currentUser) {
     signupNavBtn.classList.add("hidden");
     userProfile.classList.remove("hidden");
@@ -367,17 +247,12 @@ function updateAuthUI() {
     userName.textContent = currentUser;
     dropdownName.textContent = currentUser;
 
-    const users = getAllUsers();
-    const userData = users[currentUser];
-    if (userData) {
-      dropdownEmail.textContent = userData.email || "";
-      if (userData.createdAt) {
-        const d = new Date(userData.createdAt);
-        userJoinDate.textContent = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-      }
-    }
+    // Fetch user metadata from Supabase
+    const { data: userData } = await supabase.auth.getUser();
+    dropdownEmail.textContent = userData?.user?.email || "";
+    userJoinDate.textContent = userData?.user?.created_at ? new Date(userData.user.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—";
 
-    const bids = getStoredBids();
+    const bids = await getStoredBids();
     userBidCount.textContent = String(Object.keys(bids).length);
   } else {
     signupNavBtn.classList.remove("hidden");
