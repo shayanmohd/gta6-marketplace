@@ -57,9 +57,20 @@ const WALLET_STORAGE_KEY = "vice-syndicate-wallet";
 const AUTH_TOKEN_KEY = "vice-syndicate-token";
 const REMOTE_MAP_KEY = "vice-syndicate-remote-map";
 
-
 // Supabase client setup
 const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+// State
+let activeFilter = "all";
+let currentUser = null;
+let connectedWallet = null;
+
+// Countdown target
+const targetDate = new Date("2026-10-01T00:00:00");
+
+// ============================================================================
+// API HEALTH CHECK
+// ============================================================================
 
 function setApiStatus(status, color) {
   const el = document.getElementById('apiStatus');
@@ -71,7 +82,6 @@ function setApiStatus(status, color) {
 }
 
 async function probeApiHealth() {
-  // For serverless, just check Supabase connection
   try {
     const { error } = await supabase.from('users').select('id').limit(1);
     if (!error) {
@@ -83,14 +93,6 @@ async function probeApiHealth() {
     setApiStatus('Offline', '#e74c3c');
   }
 }
-
-// State
-let activeFilter = "all";
-let currentUser = null;
-let connectedWallet = null;
-
-// Countdown target
-const targetDate = new Date("2026-10-01T00:00:00");
 
 // ============================================================================
 // COUNTDOWN
@@ -105,86 +107,62 @@ function updateCountdown() {
     return;
   }
 
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / 1000 / 60) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
 
-  async function handleSignup(e) {
-    e.preventDefault();
-    signupMessage.className = "form-message";
+  countdownEl.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+}
 
-    const username = $("username").value.trim();
-    const email = $("signupEmail").value.trim();
-    const password = $("password").value;
-    const confirmPassword = $("confirmPassword").value;
+// ============================================================================
+// AUTHENTICATION
+// ============================================================================
 
-    if (!username || !email || !password) {
-      signupMessage.textContent = "All fields are required.";
-      signupMessage.classList.add("error");
-      return;
-    }
-    if (password !== confirmPassword) {
-      signupMessage.textContent = "Passwords do not match.";
-      signupMessage.classList.add("error");
-      return;
-    }
-    if (password.length < 8) {
-      signupMessage.textContent = "Password must be at least 8 characters.";
-      signupMessage.classList.add("error");
-      return;
-    }
+async function handleSignup(e) {
+  e.preventDefault();
+  signupMessage.className = "form-message";
 
-    // Supabase email/password signup
-    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
-    if (error) {
-      signupMessage.textContent = error.message || 'Registration failed';
-      signupMessage.classList.add('error');
-      return;
-    }
-    currentUser = email;
-    localStorage.setItem(CURRENT_USER_KEY, currentUser);
-    signupMessage.textContent = `Account created! Welcome, ${currentUser}`;
-    signupMessage.classList.add('success');
-    setTimeout(() => {
-      signupModal.classList.remove('open');
-      signupFormModal.reset();
-      signupMessage.textContent = '';
-      updateAuthUI();
-      renderWatchlist();
-      showToast(`Welcome to Vice Syndicate, ${currentUser}!`);
-    }, 800);
+  const username = $("username").value.trim();
+  const email = $("signupEmail").value.trim();
+  const password = $("password").value;
+  const confirmPassword = $("confirmPassword").value;
+
+  if (!username || !email || !password) {
+    signupMessage.textContent = "All fields are required.";
+    signupMessage.classList.add("error");
+    return;
+  }
+  if (password !== confirmPassword) {
+    signupMessage.textContent = "Passwords do not match.";
+    signupMessage.classList.add("error");
+    return;
+  }
+  if (password.length < 8) {
+    signupMessage.textContent = "Password must be at least 8 characters.";
+    signupMessage.classList.add("error");
+    return;
   }
 
-
-// Supabase-based bids (fetch all bids for current user)
-async function getStoredBids() {
-  if (!currentUser) return {};
-  const { data, error } = await supabase.from('bids').select('*').eq('user_email', currentUser);
-  if (error || !data) return {};
-  // Map by listingId for compatibility
-  const bids = {};
-  data.forEach(bid => {
-    bids[bid.listing_id] = {
-      id: bid.listing_id,
-      name: bid.listing_name,
-      amount: bid.amount,
-      timestamp: new Date(bid.created_at).getTime(),
-      user: bid.user_email
-    };
-  });
-  return bids;
-}
-
-async function setStoredBids(listingId, bidObj) {
-  // Upsert bid for current user
-  if (!currentUser) return;
-  await supabase.from('bids').upsert({
-    listing_id: listingId,
-    listing_name: bidObj.name,
-    amount: bidObj.amount,
-    user_email: currentUser,
-    created_at: new Date().toISOString()
-    showToast(`Welcome to Vice Syndicate, ${username}!`);
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
+  if (error) {
+    signupMessage.textContent = error.message || 'Registration failed';
+    signupMessage.classList.add('error');
+    return;
+  }
+  currentUser = email;
+  localStorage.setItem(CURRENT_USER_KEY, currentUser);
+  signupMessage.textContent = `Account created! Welcome, ${currentUser}`;
+  signupMessage.classList.add('success');
+  setTimeout(() => {
+    signupModal.classList.remove('open');
+    signupFormModal.reset();
+    signupMessage.textContent = '';
+    updateAuthUI();
+    renderWatchlist();
+    showToast(`Welcome to Vice Syndicate, ${currentUser}!`);
   }, 800);
 }
-
 
 async function handleLogin(e) {
   e.preventDefault();
@@ -199,7 +177,6 @@ async function handleLogin(e) {
     return;
   }
 
-  // Supabase email/password login
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     signupMessage.textContent = error.message || 'Login failed';
@@ -220,120 +197,130 @@ async function handleLogin(e) {
   }, 800);
 }
 
-
 async function handleLogout() {
   await supabase.auth.signOut();
   currentUser = null;
   localStorage.removeItem(CURRENT_USER_KEY);
-  profileDropdown.classList.remove("open");
   updateAuthUI();
+  profileDropdown.classList.remove("open");
   showToast("Logged out successfully");
 }
-// Social login (Google, GitHub, etc.)
-async function handleSocialLogin(provider) {
-  const { error } = await supabase.auth.signInWithOAuth({ provider });
-  if (error) {
-    showToast('Social login failed');
-  }
-}
 
-async function updateAuthUI() {
+function updateAuthUI() {
   if (currentUser) {
-    signupNavBtn.classList.add("hidden");
+    $("signupNavBtn").classList.add("hidden");
     userProfile.classList.remove("hidden");
-
-    const initial = currentUser.charAt(0).toUpperCase();
-    userAvatar.textContent = initial;
-    userName.textContent = currentUser;
-    dropdownName.textContent = currentUser;
-
-    // Fetch user metadata from Supabase
-    const { data: userData } = await supabase.auth.getUser();
-    dropdownEmail.textContent = userData?.user?.email || "";
-    userJoinDate.textContent = userData?.user?.created_at ? new Date(userData.user.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—";
-
-    const bids = await getStoredBids();
-    userBidCount.textContent = String(Object.keys(bids).length);
+    userName.textContent = currentUser.split("@")[0];
+    dropdownName.textContent = currentUser.split("@")[0];
+    dropdownEmail.textContent = currentUser;
   } else {
-    signupNavBtn.classList.remove("hidden");
+    $("signupNavBtn").classList.remove("hidden");
     userProfile.classList.add("hidden");
-    profileDropdown.classList.remove("open");
   }
 }
+
+// ============================================================================
+// BIDS & WATCHLIST
+// ============================================================================
+
+async function getStoredBids() {
+  if (!currentUser) return {};
+  const { data, error } = await supabase.from('bids').select('*').eq('user_email', currentUser);
+  if (error || !data) return {};
+  const bids = {};
+  data.forEach(bid => {
+    bids[bid.listing_id] = {
+      id: bid.listing_id,
+      name: bid.listing_name,
+      amount: bid.amount,
+      timestamp: new Date(bid.created_at).getTime(),
+      user: bid.user_email
+    };
+  });
+  return bids;
+}
+
+async function setStoredBids(listingId, bidObj) {
+  if (!currentUser) return;
+  await supabase.from('bids').upsert({
+    listing_id: listingId,
+    listing_name: bidObj.name,
+    amount: bidObj.amount,
+    user_email: currentUser,
+    created_at: new Date().toISOString()
+  });
+}
+
+async function renderWatchlist() {
+  const bids = await getStoredBids();
+  const entries = Object.entries(bids);
+  if (entries.length === 0) {
+    watchlistItems.innerHTML = "<li>No active bids</li>";
+    return;
+  }
+  let html = "";
+  entries.forEach(([_, bid]) => {
+    html += `<li><strong>${bid.name}</strong> - ${formatPrice(bid.amount)}</li>`;
+  });
+  watchlistItems.innerHTML = html;
+  userBidCount.textContent = entries.length;
+}
+
+function formatPrice(price) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+}
+
+// ============================================================================
+// MODALS
+// ============================================================================
 
 function openSignupModal() {
   signupView.classList.remove("hidden");
   loginView.classList.add("hidden");
-  signupMessage.textContent = "";
-  signupMessage.className = "form-message";
-  signupModal.classList.add("open");
-}
-
-function openLoginModal() {
-  loginView.classList.remove("hidden");
-  signupView.classList.add("hidden");
-  signupMessage.textContent = "";
-  signupMessage.className = "form-message";
   signupModal.classList.add("open");
 }
 
 function closeSignupModal() {
   signupModal.classList.remove("open");
-  signupMessage.textContent = "";
-  signupMessage.className = "form-message";
+  setTimeout(() => {
+    signupFormModal.reset();
+    loginFormModal.reset();
+    signupMessage.textContent = '';
+  }, 300);
 }
 
 // ============================================================================
 // MARKETPLACE
 // ============================================================================
 
-
-async function renderWatchlist() {
-  const bids = await getStoredBids();
-  const entries = Object.entries(bids);
-  watchlistItems.innerHTML = "";
-  if (entries.length === 0) {
-    const emptyItem = document.createElement("li");
-    emptyItem.textContent = "No bids yet. Hit Bid +5% on any listing.";
-    watchlistItems.appendChild(emptyItem);
-    return;
-  }
-  entries
-    .sort((a, b) => b[1].timestamp - a[1].timestamp)
-    .forEach(([_, bid]) => {
-      const item = document.createElement("li");
-      const itemName = document.createElement("strong");
-      itemName.textContent = bid.name;
-      const itemPrice = document.createElement("span");
-      itemPrice.textContent = `Current bid ${formatPrice(bid.amount)}`;
-      item.append(itemName, itemPrice);
-      watchlistItems.appendChild(item);
-    });
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2000);
 }
 
 function applyFilters() {
-  const term = searchInput.value.trim().toLowerCase();
+  const searchTerm = searchInput.value.toLowerCase();
   let visibleCount = 0;
 
   cards.forEach((card) => {
     const category = card.getAttribute("data-category");
     const name = card.getAttribute("data-name");
-    const categoryMatch = activeFilter === "all" || category === activeFilter;
-    const searchMatch = name.includes(term);
-    const shouldShow = categoryMatch && searchMatch;
+    const matchesFilter = activeFilter === "all" || category === activeFilter;
+    const matchesSearch = !searchTerm || name.includes(searchTerm);
+    const isVisible = matchesFilter && matchesSearch;
 
-    if (shouldShow) visibleCount += 1;
-    card.classList.toggle("hidden", !shouldShow);
+    card.style.display = isVisible ? "" : "none";
+    if (isVisible) visibleCount++;
   });
 
-  marketSummary.textContent = `${visibleCount} listing${visibleCount === 1 ? "" : "s"} active`;
+  marketSummary.textContent = `${visibleCount} listing${visibleCount !== 1 ? 's' : ''} active`;
 }
-
 
 function setupBidding() {
   cards.forEach((card) => {
-    const priceEl = card.querySelector("[data-price]");
     const bidBtn = card.querySelector(".bid-btn");
+    const priceEl = card.querySelector("[data-price]");
     const listingId = card.getAttribute("data-id");
     const listingName = card.querySelector("h3").textContent;
 
@@ -348,7 +335,6 @@ function setupBidding() {
       priceEl.setAttribute("data-price", String(nextBid));
       priceEl.textContent = formatPrice(nextBid);
 
-      // Store bid in Supabase
       await setStoredBids(listingId, {
         id: listingId,
         name: listingName,
@@ -363,10 +349,8 @@ function setupBidding() {
   });
 }
 
-
 async function handleClearBids() {
   if (!currentUser) return;
-  // Delete all bids for current user
   await supabase.from('bids').delete().eq('user_email', currentUser);
   cards.forEach((card) => {
     const priceEl = card.querySelector("[data-price]");
@@ -405,7 +389,6 @@ async function handleConnectWallet() {
   }
 }
 
-
 async function renderBidHistory() {
   const bids = await getStoredBids();
   const entries = Object.entries(bids);
@@ -442,7 +425,7 @@ function handleEmailSignup(e) {
 }
 
 // ============================================================================
-// UI
+// UI EFFECTS
 // ============================================================================
 
 function setupMenuToggle() {
@@ -451,7 +434,6 @@ function setupMenuToggle() {
     menuToggle.setAttribute("aria-expanded", String(isOpen));
   });
 
-  // Close mobile nav on link click
   siteNav.querySelectorAll("a").forEach((link) => {
     link.addEventListener("click", () => {
       siteNav.classList.remove("open");
@@ -459,10 +441,6 @@ function setupMenuToggle() {
     });
   });
 }
-
-// ============================================================================
-// HERO PANEL EFFECTS
-// ============================================================================
 
 function setupHeroPanel() {
   const heroPanel = $("heroPanel");
@@ -482,18 +460,11 @@ function setupHeroPanel() {
   });
 }
 
-// ============================================================================
-// SCROLL EFFECTS
-// ============================================================================
-
 function setupScrollEffects() {
   const header = document.querySelector(".site-header");
 
   window.addEventListener("scroll", () => {
-    // Header shadow on scroll
     header.classList.toggle("scrolled", window.scrollY > 50);
-
-    // Back to top button visibility
     backToTopBtn.classList.toggle("visible", window.scrollY > 400);
   }, { passive: true });
 
@@ -502,17 +473,12 @@ function setupScrollEffects() {
   });
 }
 
-// ============================================================================
-// PROFILE DROPDOWN
-// ============================================================================
-
 function setupProfileDropdown() {
   profileToggle.addEventListener("click", (e) => {
     e.stopPropagation();
     profileDropdown.classList.toggle("open");
   });
 
-  // Close dropdown when clicking outside
   document.addEventListener("click", (e) => {
     if (!profileDropdown.contains(e.target) && !profileToggle.contains(e.target)) {
       profileDropdown.classList.remove("open");
@@ -521,13 +487,54 @@ function setupProfileDropdown() {
 }
 
 // ============================================================================
-// INITIALIZATION
+// ANIMATIONS
 // ============================================================================
 
+function setupRevealAnimation() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("revealed");
+      }
+    });
+  }, { threshold: 0.1 });
+
+  revealEls.forEach((el) => observer.observe(el));
+}
+
+function setupCounters() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting && !entry.target.classList.contains("counted")) {
+        const target = parseInt(entry.target.getAttribute("data-target"));
+        let current = 0;
+        const increment = Math.ceil(target / 30);
+
+        const interval = setInterval(() => {
+          current += increment;
+          if (current >= target) {
+            current = target;
+            clearInterval(interval);
+          }
+          entry.target.textContent = current;
+        }, 30);
+
+        entry.target.classList.add("counted");
+      }
+    });
+  }, { threshold: 0.1 });
+
+  counters.forEach((el) => observer.observe(el));
+}
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
 async function initialize() {
   // Probe API health and show status
   probeApiHealth();
+  
   // Countdown
   updateCountdown();
   setInterval(updateCountdown, 1000);
