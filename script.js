@@ -201,10 +201,20 @@ function getSupabase() {
   return sb;
 }
 
+// Try an async op up to `tries` times; returns true on first success.
+async function withRetry(fn, tries) {
+  for (let i = 0; i < (tries || 2); i++) {
+    try { if (await fn()) return true; } catch (e) { /* retry */ }
+    if (i < (tries || 2) - 1) await new Promise((r) => setTimeout(r, 700));
+  }
+  return false;
+}
+
 async function handleNotify(e) {
   e.preventDefault();
   const input = $("notifyEmail");
   const msg = $("notifyMsg");
+  const btn = e.target.querySelector('button[type="submit"]');
   const email = (input.value || "").trim();
   msg.className = "form-message";
 
@@ -215,44 +225,67 @@ async function handleNotify(e) {
   }
 
   const nl = CFG.newsletter || {};
-  let captured = false;
+  const client = nl.provider === "supabase" ? getSupabase() : null;
+  const configured = !!client || !!nl.actionUrl;
+  let duplicate = false;
 
-  try {
-    if (nl.provider === "supabase") {
-      const client = getSupabase();
-      if (client) {
-        const { error } = await client.from(nl.supabaseTable || "subscribers")
-          .insert({ email, source: "gta6.llc", created_at: new Date().toISOString() });
-        if (!error) captured = true;
-        else if (String(error.message || "").toLowerCase().includes("duplicate")) {
-          msg.textContent = "You're already on the list. See you Nov 19! 🌴";
-          msg.classList.add("success");
-          e.target.reset();
-          return;
-        }
-      }
-    } else if (nl.actionUrl) {
-      const res = await fetch(nl.actionUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      captured = res.ok;
-    }
-  } catch (err) { /* fall through to local backup */ }
-
-  // Local backup so no signup is ever lost, even if the backend isn't set up yet.
+  // Always keep a local backup copy so a signup is never lost outright.
   try {
     const key = "gta6-subscribers";
     const list = JSON.parse(localStorage.getItem(key) || "[]");
     if (!list.includes(email)) { list.push(email); localStorage.setItem(key, JSON.stringify(list)); }
-  } catch (e) {}
+  } catch (_) {}
 
-  msg.textContent = "You're in! We'll ping you the moment GTA 6 goes live. 🌴";
-  msg.classList.add("success");
-  e.target.reset();
-  showToast("🔔 Launch alert set!");
-  if (!captured) console.info("[gta6.llc] Email stored locally. Connect a backend in config.js → newsletter to collect them centrally. See LAUNCH.md.");
+  if (btn) { btn.disabled = true; }
+  msg.textContent = "Signing you up…";
+
+  const captured = await withRetry(async () => {
+    if (client) {
+      const { error } = await client.from(nl.supabaseTable || "subscribers").insert({ email, source: "gta6.llc" });
+      if (!error) return true;
+      const m = String((error && (error.message || error.code)) || "").toLowerCase();
+      if (m.includes("duplicate") || m.includes("23505")) { duplicate = true; return true; }
+      throw error; // let withRetry retry transient failures (e.g. 503 outages)
+    }
+    if (nl.actionUrl) {
+      const res = await fetch(nl.actionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ email, source: "gta6.llc" }),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return true;
+    }
+    return false; // no backend configured
+  }, 3);
+
+  if (btn) { btn.disabled = false; }
+
+  if (duplicate) {
+    msg.textContent = "You're already on the list. See you Nov 19! 🌴";
+    msg.classList.add("success");
+    e.target.reset();
+    return;
+  }
+  if (captured) {
+    msg.textContent = "You're in! We'll ping you the moment GTA 6 goes live. 🌴";
+    msg.classList.add("success");
+    e.target.reset();
+    showToast("🔔 Launch alert set!");
+    return;
+  }
+  if (!configured) {
+    // No backend wired yet — kept locally; treat as soft success for the visitor.
+    msg.textContent = "You're in! We'll ping you the moment GTA 6 goes live. 🌴";
+    msg.classList.add("success");
+    e.target.reset();
+    console.warn("[gta6.llc] No newsletter backend configured — email kept only in this browser. Wire config.js → newsletter (Formspree/beehiiv recommended). See LAUNCH.md.");
+    return;
+  }
+  // Configured but the save genuinely failed (e.g. backend down). Be honest so it isn't lost silently.
+  msg.textContent = "Hmm, that didn't go through — please try again in a moment.";
+  msg.classList.add("error");
+  console.error("[gta6.llc] Newsletter save FAILED (backend unreachable). The email is in this browser's localStorage only.");
 }
 
 /* ---------------------------------------------------------------------------

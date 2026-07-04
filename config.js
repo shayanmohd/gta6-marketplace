@@ -147,12 +147,21 @@ window.GTA6_CONFIG = {
   /* --------------------------------------------------------------------------
    * 5. NEWSLETTER / EMAIL LIST  (your #1 long-term asset — build it from day 1)
    * --------------------------------------------------------------------------
-   * provider: "supabase" (free, already wired) | "mailerlite" | "beehiiv" | "formspree"
-   * For hosted providers, paste the form ACTION url they give you.
+   * ⚠️ RECOMMENDED: use a real email service, NOT Supabase, for your list.
+   *    Reasons: (1) free Supabase projects PAUSE after ~1 week of inactivity, so
+   *    signups silently fail during quiet periods; (2) Supabase can STORE emails
+   *    but can't SEND them — you'd have to export to an email tool anyway.
+   *
+   *    → beehiiv (best: free to 2,500 subs, sends email + built-in monetization)
+   *      or Formspree (fastest: 2-min signup, emails you each submission).
+   *      Create a form, then set:  provider:"formspree", actionUrl:"https://formspree.io/f/XXXX"
+   *      (any provider that accepts a POST works — beehiiv, MailerLite, Formspree.)
+   *
+   * provider: "supabase" (stopgap, already wired) | "formspree" | "beehiiv" | "mailerlite"
    */
   newsletter: {
     provider: "supabase",
-    actionUrl: "",                 // ← for mailerlite/beehiiv/formspree: their embed form action URL
+    actionUrl: "",                 // ← paste your Formspree/beehiiv/MailerLite POST URL, then set provider above
     supabaseTable: "subscribers"   // used only when provider === "supabase"
   },
 

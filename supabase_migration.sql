@@ -20,6 +20,11 @@ create policy "anon can subscribe"
   to anon
   with check (true);
 
+-- Belt-and-suspenders grants (usually already covered by Supabase defaults, but
+-- run these if inserts ever fail with a permission error once the API is up):
+grant insert on subscribers to anon;
+grant usage, select on sequence subscribers_id_seq to anon;
+
 -- NOTE: no SELECT policy for anon => the public key cannot read the list.
 -- You read subscribers from the Supabase dashboard (Table Editor) or with the
 -- service_role key server-side. Export them to your email tool anytime.
