@@ -33,7 +33,7 @@ window.GTA6_CONFIG = {
         url: "https://www.xbox.com/games/store", affiliate: false },
       { key: "amazon",    label: "Amazon",            emoji: "📦", note: "Physical (code-in-box)",
         // → Add your Amazon Associates tag:  ?tag=YOURTAG-20
-        url: "https://www.amazon.com/s?k=Grand+Theft+Auto+VI", affiliate: false },
+        url: "https://www.amazon.com/s?k=Grand+Theft+Auto+VI&tag=gta6087-20", affiliate: false },
       { key: "gamestop",  label: "GameStop",          emoji: "🕹️", note: "Physical + trade-in",
         url: "https://www.gamestop.com/", affiliate: false },
       { key: "gmg",       label: "Green Man Gaming",  emoji: "💚", note: "Often discounted keys",
@@ -68,17 +68,17 @@ window.GTA6_CONFIG = {
    */
   gear: [
     { title: "PlayStation 5 Pro",        emoji: "🎮", price: "$699", tag: "Runs GTA 6 at its best",
-      url: "https://www.amazon.com/s?k=PlayStation+5+Pro" },
+      url: "https://www.amazon.com/s?k=PlayStation+5+Pro&tag=gta6087-20" },
     { title: "Xbox Series X",            emoji: "🟢", price: "$499", tag: "4K console-ready",
-      url: "https://www.amazon.com/s?k=Xbox+Series+X" },
+      url: "https://www.amazon.com/s?k=Xbox+Series+X&tag=gta6087-20" },
     { title: "Secretlab Gaming Chair",   emoji: "🪑", price: "$549", tag: "For those all-nighter sessions",
       url: "https://secretlab.co/" },   // ← Secretlab affiliate: 12% per sale, best margin
     { title: "Razer Headset",            emoji: "🎧", price: "$99",  tag: "Hear Vice City breathe",
-      url: "https://www.amazon.com/s?k=razer+gaming+headset" },
+      url: "https://www.amazon.com/s?k=razer+gaming+headset&tag=gta6087-20" },
     { title: "4K Capture Card",          emoji: "🎥", price: "$149", tag: "Record launch-day clips",
-      url: "https://www.amazon.com/s?k=4k+capture+card" },
+      url: "https://www.amazon.com/s?k=4k+capture+card&tag=gta6087-20" },
     { title: "2TB NVMe SSD",             emoji: "💾", price: "$129", tag: "GTA 6 is a big install",
-      url: "https://www.amazon.com/s?k=2tb+nvme+ssd+ps5" }
+      url: "https://www.amazon.com/s?k=2tb+nvme+ssd+ps5&tag=gta6087-20" }
   ],
 
   /* --------------------------------------------------------------------------
@@ -89,8 +89,8 @@ window.GTA6_CONFIG = {
    * market keys to Eneba ONLY (skip G2A/Kinguin) and show the risk note.
    */
   giftcards: [
-    { title: "PSN Gift Cards",      emoji: "🅿️", url: "https://www.amazon.com/s?k=playstation+gift+card" },
-    { title: "Xbox Gift Cards",     emoji: "🟢", url: "https://www.amazon.com/s?k=xbox+gift+card" },
+    { title: "PSN Gift Cards",      emoji: "🅿️", url: "https://www.amazon.com/s?k=playstation+gift+card&tag=gta6087-20" },
+    { title: "Xbox Gift Cards",     emoji: "🟢", url: "https://www.amazon.com/s?k=xbox+gift+card&tag=gta6087-20" },
     { title: "Game Key Deals",      emoji: "🔑", url: "https://www.eneba.com/" }
   ],
   giftcardNote: "Key marketplaces are third-party resellers — buy from reputable sellers only. We are not responsible for third-party purchases.",
@@ -106,22 +106,22 @@ window.GTA6_CONFIG = {
     // gta-6-editions.html
     "editions-standard": "https://store.rockstargames.com/",
     "editions-ultimate": "https://store.rockstargames.com/",
-    "editions-amazon":   "https://www.amazon.com/s?k=Grand+Theft+Auto+VI",
+    "editions-amazon":   "https://www.amazon.com/s?k=Grand+Theft+Auto+VI&tag=gta6087-20",
     // best-gaming-chair-gta-6.html
     "chair-secretlab-titan": "https://secretlab.co/",
     "chair-secretlab-classic": "https://secretlab.co/",
-    "chair-razer-iskur":    "https://www.amazon.com/s?k=razer+iskur+gaming+chair",
-    "chair-budget":         "https://www.amazon.com/s?k=gaming+chair",
+    "chair-razer-iskur":    "https://www.amazon.com/s?k=razer+iskur+gaming+chair&tag=gta6087-20",
+    "chair-budget":         "https://www.amazon.com/s?k=gaming+chair&tag=gta6087-20",
     // best-controller-gta-6.html
-    "controller-dualsense":      "https://www.amazon.com/s?k=dualsense+controller",
-    "controller-dualsense-edge": "https://www.amazon.com/s?k=dualsense+edge",
-    "controller-xbox-elite":     "https://www.amazon.com/s?k=xbox+elite+controller+series+2",
-    "controller-xbox-core":      "https://www.amazon.com/s?k=xbox+wireless+controller",
+    "controller-dualsense":      "https://www.amazon.com/s?k=dualsense+controller&tag=gta6087-20",
+    "controller-dualsense-edge": "https://www.amazon.com/s?k=dualsense+edge&tag=gta6087-20",
+    "controller-xbox-elite":     "https://www.amazon.com/s?k=xbox+elite+controller+series+2&tag=gta6087-20",
+    "controller-xbox-core":      "https://www.amazon.com/s?k=xbox+wireless+controller&tag=gta6087-20",
     // best-headset-gta-6.html
-    "headset-pulse-elite":   "https://www.amazon.com/s?k=pulse+elite+headset",
-    "headset-razer":         "https://www.amazon.com/s?k=razer+barracuda+gaming+headset",
-    "headset-steelseries":   "https://www.amazon.com/s?k=steelseries+arctis+nova",
-    "headset-hyperx-budget": "https://www.amazon.com/s?k=hyperx+cloud+gaming+headset"
+    "headset-pulse-elite":   "https://www.amazon.com/s?k=pulse+elite+headset&tag=gta6087-20",
+    "headset-razer":         "https://www.amazon.com/s?k=razer+barracuda+gaming+headset&tag=gta6087-20",
+    "headset-steelseries":   "https://www.amazon.com/s?k=steelseries+arctis+nova&tag=gta6087-20",
+    "headset-hyperx-budget": "https://www.amazon.com/s?k=hyperx+cloud+gaming+headset&tag=gta6087-20"
   },
 
   /* --------------------------------------------------------------------------
