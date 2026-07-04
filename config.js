@@ -96,6 +96,35 @@ window.GTA6_CONFIG = {
   giftcardNote: "Key marketplaces are third-party resellers — buy from reputable sellers only. We are not responsible for third-party purchases.",
 
   /* --------------------------------------------------------------------------
+   * 4b. GUIDE-PAGE AFFILIATE LINKS  (buyer guides: chair / controller / headset)
+   * --------------------------------------------------------------------------
+   * The buyer-guide pages show static product cards for SEO. Each "Check price"
+   * button reads its link from this map by key. Replace each URL with YOUR
+   * affiliate link — the pages already work with the plain store links below.
+   */
+  guideLinks: {
+    // gta-6-editions.html
+    "editions-standard": "https://store.rockstargames.com/",
+    "editions-ultimate": "https://store.rockstargames.com/",
+    "editions-amazon":   "https://www.amazon.com/s?k=Grand+Theft+Auto+VI",
+    // best-gaming-chair-gta-6.html
+    "chair-secretlab-titan": "https://secretlab.co/",
+    "chair-secretlab-classic": "https://secretlab.co/",
+    "chair-razer-iskur":    "https://www.amazon.com/s?k=razer+iskur+gaming+chair",
+    "chair-budget":         "https://www.amazon.com/s?k=gaming+chair",
+    // best-controller-gta-6.html
+    "controller-dualsense":      "https://www.amazon.com/s?k=dualsense+controller",
+    "controller-dualsense-edge": "https://www.amazon.com/s?k=dualsense+edge",
+    "controller-xbox-elite":     "https://www.amazon.com/s?k=xbox+elite+controller+series+2",
+    "controller-xbox-core":      "https://www.amazon.com/s?k=xbox+wireless+controller",
+    // best-headset-gta-6.html
+    "headset-pulse-elite":   "https://www.amazon.com/s?k=pulse+elite+headset",
+    "headset-razer":         "https://www.amazon.com/s?k=razer+barracuda+gaming+headset",
+    "headset-steelseries":   "https://www.amazon.com/s?k=steelseries+arctis+nova",
+    "headset-hyperx-budget": "https://www.amazon.com/s?k=hyperx+cloud+gaming+headset"
+  },
+
+  /* --------------------------------------------------------------------------
    * 4. DISPLAY ADS  (passive income once you have traffic)
    * --------------------------------------------------------------------------
    * Start with Google AdSense (no traffic minimum). Paste your publisher ID.
