@@ -167,11 +167,14 @@ function initAds() {
   const ads = CFG.adsense;
   if (!ads || !ads.enabled || !ads.client || ads.client.includes("XXXX")) return;
 
-  const s = document.createElement("script");
-  s.async = true;
-  s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ads.client}`;
-  s.crossOrigin = "anonymous";
-  document.head.appendChild(s);
+  // Auto Ads loader may already be in <head>; only add it if missing.
+  if (!document.querySelector('script[src*="adsbygoogle.js"]')) {
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ads.client}`;
+    s.crossOrigin = "anonymous";
+    document.head.appendChild(s);
+  }
 
   document.querySelectorAll(".ad-slot").forEach((slot) => {
     const key = slot.dataset.ad;

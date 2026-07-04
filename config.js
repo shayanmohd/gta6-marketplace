@@ -125,16 +125,21 @@ window.GTA6_CONFIG = {
   },
 
   /* --------------------------------------------------------------------------
-   * 4. DISPLAY ADS  (passive income once you have traffic)
+   * 4. DISPLAY ADS  (Google AdSense — Auto Ads ALREADY LIVE)
    * --------------------------------------------------------------------------
-   * Start with Google AdSense (no traffic minimum). Paste your publisher ID.
-   * Set enabled:true AFTER you're approved. Leave false to hide ad slots.
+   * ✅ Auto Ads is active: the loader script is in the <head> of every page and
+   *    Google auto-places ads once your site is APPROVED (review takes days-2wks).
+   *    Turn "Auto ads" ON in the AdSense dashboard → Apply to site.
+   *
+   * The block below is ONLY for optional MANUAL ad units (extra control). Leave
+   * enabled:false unless you create ad units in AdSense → Ads → By ad unit and
+   * paste their slot IDs here.
    */
   adsense: {
     enabled: false,
-    client: "ca-pub-XXXXXXXXXXXXXXXX",   // ← your AdSense publisher ID
+    client: "ca-pub-6834902829870684",   // your AdSense publisher ID
     slots: {
-      inArticle: "0000000000",
+      inArticle: "0000000000",           // ← paste a real ad-unit slot ID to use
       footer: "0000000000"
     }
   },
