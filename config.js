@@ -1,0 +1,161 @@
+/* ============================================================================
+ * GTA6.LLC — MONETIZATION CONTROL PANEL
+ * ----------------------------------------------------------------------------
+ * This is the ONE file you edit to turn the site into a money-maker.
+ * The site works out of the box (all links point to real official stores).
+ * To start EARNING, replace the placeholder IDs / tags below with your own.
+ *
+ * Nothing here is secret — it ships to the browser. Never put private keys here.
+ * Read LAUNCH.md for step-by-step signup instructions for every program.
+ * ========================================================================== */
+
+window.GTA6_CONFIG = {
+
+  /* --------------------------------------------------------------------------
+   * 1. AFFILIATE — PRE-ORDER RETAILERS  (highest-intent money, do this first)
+   * --------------------------------------------------------------------------
+   * Each button already links to the REAL store. To earn a commission, append
+   * your affiliate tag/param to the URL (instructions per-program in LAUNCH.md).
+   * Set `affiliate: true` once you've added your tag so the badge shows.
+   */
+  preorder: {
+    editions: {
+      standardPrice: "$79.99",
+      ultimatePrice: "$99.99",
+      bonus: "Vintage Vice City Pack (pre-order before Nov 20) + 1 month GTA+ (digital)"
+    },
+    retailers: [
+      { key: "rockstar",  label: "Rockstar Store",   emoji: "🎮", note: "Official • best bonuses",
+        url: "https://store.rockstargames.com/", affiliate: false },
+      { key: "playstation", label: "PlayStation Store", emoji: "🅿️", note: "PS5 / PS5 Pro digital",
+        url: "https://store.playstation.com/", affiliate: false },
+      { key: "xbox",      label: "Xbox Store",        emoji: "🟢", note: "Series X|S digital",
+        url: "https://www.xbox.com/games/store", affiliate: false },
+      { key: "amazon",    label: "Amazon",            emoji: "📦", note: "Physical (code-in-box)",
+        // → Add your Amazon Associates tag:  ?tag=YOURTAG-20
+        url: "https://www.amazon.com/s?k=Grand+Theft+Auto+VI", affiliate: false },
+      { key: "gamestop",  label: "GameStop",          emoji: "🕹️", note: "Physical + trade-in",
+        url: "https://www.gamestop.com/", affiliate: false },
+      { key: "gmg",       label: "Green Man Gaming",  emoji: "💚", note: "Often discounted keys",
+        url: "https://www.greenmangaming.com/", affiliate: false }
+    ]
+  },
+
+  /* --------------------------------------------------------------------------
+   * 2. AFFILIATE — VPN  (⭐ HIGHEST $-PER-SALE — set this up FIRST)
+   * --------------------------------------------------------------------------
+   * Research finding: a single VPN partner (NordVPN ~$40+/sale + recurring)
+   * out-earns dozens of low-ticket key sales. The "reduce lag / stop DDoS /
+   * protect your account in GTA Online" angle converts hard. Sign up at
+   * nordvpn.com/affiliate (or via Awin/Impact) and paste your link below.
+   */
+  vpn: {
+    show: true,
+    headline: "Beat GTA Online lag & DDoS",
+    blurb: "Cut ping, dodge DDoS boots, and protect your account when GTA 6's online mode goes live. A gaming VPN is the cheapest upgrade you'll make before launch.",
+    brand: "NordVPN",
+    cta: "Get the deal",
+    url: "https://nordvpn.com/"    // ← replace with YOUR NordVPN affiliate link
+  },
+
+  /* --------------------------------------------------------------------------
+   * 3. AFFILIATE — GEAR TO PLAY GTA 6  (Amazon Associates / brand programs)
+   * --------------------------------------------------------------------------
+   * Replace each `url` with your affiliate link. Keep it honest & relevant.
+   * `price` is display-only — update to match your linked product.
+   * Tip: route physical products through Amazon Associates EARLY — the account
+   * closes if you don't get 3 qualifying sales in your first 180 days.
+   */
+  gear: [
+    { title: "PlayStation 5 Pro",        emoji: "🎮", price: "$699", tag: "Runs GTA 6 at its best",
+      url: "https://www.amazon.com/s?k=PlayStation+5+Pro" },
+    { title: "Xbox Series X",            emoji: "🟢", price: "$499", tag: "4K console-ready",
+      url: "https://www.amazon.com/s?k=Xbox+Series+X" },
+    { title: "Secretlab Gaming Chair",   emoji: "🪑", price: "$549", tag: "For those all-nighter sessions",
+      url: "https://secretlab.co/" },   // ← Secretlab affiliate: 12% per sale, best margin
+    { title: "Razer Headset",            emoji: "🎧", price: "$99",  tag: "Hear Vice City breathe",
+      url: "https://www.amazon.com/s?k=razer+gaming+headset" },
+    { title: "4K Capture Card",          emoji: "🎥", price: "$149", tag: "Record launch-day clips",
+      url: "https://www.amazon.com/s?k=4k+capture+card" },
+    { title: "2TB NVMe SSD",             emoji: "💾", price: "$129", tag: "GTA 6 is a big install",
+      url: "https://www.amazon.com/s?k=2tb+nvme+ssd+ps5" }
+  ],
+
+  /* --------------------------------------------------------------------------
+   * 4. AFFILIATE — TOP-UPS & KEYS  (wallet top-ups + legit key deals)
+   * --------------------------------------------------------------------------
+   * IMPORTANT: never promote "cheap GTA$/Shark Cards" — it violates Take-Two's
+   * ToS and gets buyers banned. Monetize wallet top-ups instead. Keep grey-
+   * market keys to Eneba ONLY (skip G2A/Kinguin) and show the risk note.
+   */
+  giftcards: [
+    { title: "PSN Gift Cards",      emoji: "🅿️", url: "https://www.amazon.com/s?k=playstation+gift+card" },
+    { title: "Xbox Gift Cards",     emoji: "🟢", url: "https://www.amazon.com/s?k=xbox+gift+card" },
+    { title: "Game Key Deals",      emoji: "🔑", url: "https://www.eneba.com/" }
+  ],
+  giftcardNote: "Key marketplaces are third-party resellers — buy from reputable sellers only. We are not responsible for third-party purchases.",
+
+  /* --------------------------------------------------------------------------
+   * 4. DISPLAY ADS  (passive income once you have traffic)
+   * --------------------------------------------------------------------------
+   * Start with Google AdSense (no traffic minimum). Paste your publisher ID.
+   * Set enabled:true AFTER you're approved. Leave false to hide ad slots.
+   */
+  adsense: {
+    enabled: false,
+    client: "ca-pub-XXXXXXXXXXXXXXXX",   // ← your AdSense publisher ID
+    slots: {
+      inArticle: "0000000000",
+      footer: "0000000000"
+    }
+  },
+
+  /* --------------------------------------------------------------------------
+   * 5. NEWSLETTER / EMAIL LIST  (your #1 long-term asset — build it from day 1)
+   * --------------------------------------------------------------------------
+   * provider: "supabase" (free, already wired) | "mailerlite" | "beehiiv" | "formspree"
+   * For hosted providers, paste the form ACTION url they give you.
+   */
+  newsletter: {
+    provider: "supabase",
+    actionUrl: "",                 // ← for mailerlite/beehiiv/formspree: their embed form action URL
+    supabaseTable: "subscribers"   // used only when provider === "supabase"
+  },
+
+  /* --------------------------------------------------------------------------
+   * 6. DIGITAL PRODUCTS & MERCH  (near-zero cost — sell downloads & POD merch)
+   * --------------------------------------------------------------------------
+   * Sell wallpaper packs / guides via Gumroad/Ko-fi. Sell merch via Printful/
+   * Redbubble (no inventory). Use ORIGINAL neon/Miami designs — never Rockstar
+   * art or the "GTA" logo (see LAUNCH.md → IP rules). Empty url = card hidden.
+   */
+  store: [
+    { title: "Vice Neon Wallpaper Pack", emoji: "🖼️", price: "$4", type: "download",
+      blurb: "40 phone + desktop 4K wallpapers. Original neon art.", url: "" },
+    { title: "GTA 6 Launch Guide (PDF)", emoji: "📘", price: "$7", type: "download",
+      blurb: "Everything confirmed + pre-order checklist + launch-day tips.", url: "" },
+    { title: "Countdown Tee",            emoji: "👕", price: "$24", type: "merch",
+      blurb: "Original 'See you in Vice City' neon design. Print-on-demand.", url: "" }
+  ],
+
+  /* --------------------------------------------------------------------------
+   * 7. DONATIONS / TIP JAR  (small but instant — costs nothing to add)
+   * --------------------------------------------------------------------------
+   */
+  support: {
+    kofi: "",             // e.g. "https://ko-fi.com/yourname"
+    buymeacoffee: ""      // e.g. "https://buymeacoffee.com/yourname"
+  },
+
+  /* --------------------------------------------------------------------------
+   * 8. SOCIAL / COMMUNITY  (traffic engine — see LAUNCH.md playbook)
+   * --------------------------------------------------------------------------
+   */
+  social: {
+    discord: "",   // your invite link — a community you own = repeat traffic
+    twitter: "",   // https://x.com/yourhandle
+    tiktok: "",    // countdown clips convert insanely well pre-launch
+    youtube: "",
+    reddit: ""
+  }
+};

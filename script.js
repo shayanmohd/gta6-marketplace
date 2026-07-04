@@ -1,643 +1,352 @@
-// ============================================================================
-// VICE SYNDICATE - GTA 6 MARKETPLACE
-// Client-side state management, authentication, and bidding system
-// ============================================================================
+/* ============================================================================
+   GTA6.LLC — GTA 6 Countdown & Hub
+   All content/links are driven by config.js. Edit config.js to monetize.
+   ============================================================================ */
 
-// UI Element References
+const CFG = window.GTA6_CONFIG || {};
 const $ = (id) => document.getElementById(id);
-const countdownEl = $("countdown");
-const revealEls = document.querySelectorAll(".reveal");
-const counters = document.querySelectorAll(".counter");
-const filterButtons = document.querySelectorAll(".filter-btn");
-const cards = document.querySelectorAll(".market-card");
-const searchInput = $("searchInput");
-const marketSummary = $("marketSummary");
-const watchlistItems = $("watchlistItems");
-const clearBidsButton = $("clearBids");
-const toast = $("toast");
 
-// Modal and signup
-const signupModal = $("signupModal");
-const closeModalBtn = $("closeModal");
-const signupNavBtn = $("signupNavBtn");
-const signupFormModal = $("signupFormModal");
-const loginFormModal = $("loginFormModal");
-const signupMessage = $("signupMessage");
-const signupView = $("signupView");
-const loginView = $("loginView");
-const showLoginBtn = $("showLogin");
-const showSignupBtn = $("showSignup");
+/* GTA 6 official release date. Change here if Rockstar updates it. */
+const RELEASE = new Date("2026-11-19T00:00:00");
 
-// User profile elements
-const userProfile = $("userProfile");
-const profileToggle = $("profileToggle");
-const profileDropdown = $("profileDropdown");
-const userAvatar = $("userAvatar");
-const userName = $("userName");
-const dropdownName = $("dropdownName");
-const dropdownEmail = $("dropdownEmail");
-const userBidCount = $("userBidCount");
-const userJoinDate = $("userJoinDate");
-const logoutBtn = $("logoutBtn");
-const backToTopBtn = $("backToTop");
+/* ---------------------------------------------------------------------------
+   COUNTDOWN
+--------------------------------------------------------------------------- */
+function pad(n) { return String(n).padStart(2, "0"); }
 
-// Crypto elements
-const connectWalletBtn = $("connectWallet");
-const walletStatus = $("walletStatus");
-const bidHistory = $("bidHistory");
-
-// Menu toggle
-const menuToggle = $("menuToggle");
-const siteNav = $("siteNav");
-
-// Storage keys
-const BID_STORAGE_KEY = "vice-syndicate-bids";
-const CURRENT_USER_KEY = "vice-syndicate-current-user";
-const WALLET_STORAGE_KEY = "vice-syndicate-wallet";
-const AUTH_TOKEN_KEY = "vice-syndicate-token";
-const REMOTE_MAP_KEY = "vice-syndicate-remote-map";
-
-// Supabase client setup
-const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
-
-// State
-let activeFilter = "all";
-let currentUser = null;
-let connectedWallet = null;
-
-// Countdown target
-const targetDate = new Date("2026-10-01T00:00:00");
-
-// ============================================================================
-// API HEALTH CHECK
-// ============================================================================
-
-function setApiStatus(status, color) {
-  const el = document.getElementById('apiStatus');
-  const txt = document.getElementById('apiStatusText');
-  if (!el || !txt) return;
-  el.style.display = 'block';
-  txt.textContent = status;
-  el.style.background = color || '#222';
-}
-
-async function probeApiHealth() {
-  try {
-    const { error } = await supabase.from('users').select('id').limit(1);
-    if (!error) {
-      setApiStatus('Online', '#1db954');
-    } else {
-      setApiStatus('Offline', '#e74c3c');
-    }
-  } catch {
-    setApiStatus('Offline', '#e74c3c');
-  }
-}
-
-// ============================================================================
-// COUNTDOWN
-// ============================================================================
-
-function updateCountdown() {
-  const now = new Date();
-  const diff = targetDate - now;
+function tickCountdown() {
+  const diff = RELEASE - new Date();
+  const d = $("cdDays"), h = $("cdHours"), m = $("cdMins"), s = $("cdSecs");
+  if (!d) return;
 
   if (diff <= 0) {
-    countdownEl.textContent = "Live now";
+    [h, m, s].forEach((el) => (el.textContent = "00"));
+    d.textContent = "0";
+    const sub = document.querySelector(".hero-sub");
+    if (sub) sub.innerHTML = "<strong>GTA 6 is LIVE.</strong> Welcome back to Vice City — grab it below.";
     return;
   }
 
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diff / 1000 / 60) % 60);
-  const seconds = Math.floor((diff / 1000) % 60);
-
-  countdownEl.textContent = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff / 3600000) % 24);
+  const mins = Math.floor((diff / 60000) % 60);
+  const secs = Math.floor((diff / 1000) % 60);
+  d.textContent = String(days);
+  h.textContent = pad(hours);
+  m.textContent = pad(mins);
+  s.textContent = pad(secs);
 }
 
-// ============================================================================
-// AUTHENTICATION
-// ============================================================================
+/* ---------------------------------------------------------------------------
+   RENDER: PRE-ORDER RETAILERS
+--------------------------------------------------------------------------- */
+function renderRetailers() {
+  const grid = $("retailerGrid");
+  const po = CFG.preorder;
+  if (!grid || !po) return;
 
-async function handleSignup(e) {
+  if (po.editions) {
+    if ($("stdPrice") && po.editions.standardPrice) $("stdPrice").textContent = po.editions.standardPrice;
+    if ($("ultPrice") && po.editions.ultimatePrice) $("ultPrice").textContent = po.editions.ultimatePrice;
+  }
+
+  grid.innerHTML = (po.retailers || []).map((r) => `
+    <a class="retailer" href="${r.url}" target="_blank" rel="noopener sponsored" data-track="preorder:${r.key}">
+      ${r.affiliate ? '<span class="r-badge">Deal</span>' : ''}
+      <span class="r-emoji">${r.emoji || "🛒"}</span>
+      <span class="r-body">
+        <span class="r-label">${r.label}</span><br>
+        <span class="r-note">${r.note || ""}</span>
+      </span>
+      <span class="r-arrow">→</span>
+    </a>`).join("");
+}
+
+/* ---------------------------------------------------------------------------
+   RENDER: GEAR + GIFT CARDS
+--------------------------------------------------------------------------- */
+function renderGear() {
+  const grid = $("gearGrid");
+  if (grid && Array.isArray(CFG.gear)) {
+    grid.innerHTML = CFG.gear.map((g) => `
+      <div class="gear-card">
+        <div class="gear-emoji">${g.emoji || "🎮"}</div>
+        <h3>${g.title}</h3>
+        <p class="gear-tag">${g.tag || ""}</p>
+        <div class="gear-foot">
+          <span class="gear-price">${g.price || ""}</span>
+          <a class="gear-btn" href="${g.url}" target="_blank" rel="noopener sponsored" data-track="gear:${g.title}">View →</a>
+        </div>
+      </div>`).join("");
+  }
+
+  const row = $("giftcardRow");
+  if (row && Array.isArray(CFG.giftcards)) {
+    row.innerHTML = CFG.giftcards.map((c) => `
+      <a class="giftcard" href="${c.url}" target="_blank" rel="noopener sponsored" data-track="giftcard:${c.title}">
+        <span>${c.emoji || "🎁"}</span> ${c.title}
+      </a>`).join("");
+  }
+
+  const note = $("giftcardNote");
+  if (note && CFG.giftcardNote) { note.textContent = CFG.giftcardNote; note.hidden = false; }
+}
+
+/* ---------------------------------------------------------------------------
+   RENDER: VPN money band
+--------------------------------------------------------------------------- */
+function renderVpn() {
+  const band = $("vpnBand");
+  const v = CFG.vpn;
+  if (!band || !v || !v.show) return;
+  if ($("vpnHeadline") && v.headline) $("vpnHeadline").textContent = v.headline;
+  if ($("vpnBlurb")) $("vpnBlurb").textContent = v.blurb || "";
+  const cta = $("vpnCta");
+  if (cta) { cta.href = v.url || "#"; cta.textContent = (v.cta || "Get the deal") + (v.brand ? " →" : ""); }
+  band.hidden = false;
+}
+
+/* ---------------------------------------------------------------------------
+   RENDER: STORE (digital products + merch — only cards with a url show)
+--------------------------------------------------------------------------- */
+function renderStore() {
+  const grid = $("storeGrid");
+  if (!grid) return;
+  const live = (CFG.store || []).filter((p) => p.url && p.url.trim());
+  if (!live.length) {
+    grid.innerHTML = "";
+    const empty = $("storeEmpty");
+    if (empty) empty.hidden = false;
+    return;
+  }
+  grid.innerHTML = live.map((p) => `
+    <div class="store-card">
+      <div class="store-emoji">${p.emoji || "🛍️"}</div>
+      <h3>${p.title}</h3>
+      <p class="store-blurb">${p.blurb || ""}</p>
+      <div class="store-price">${p.price || ""}</div>
+      <a class="btn btn-primary" href="${p.url}" target="_blank" rel="noopener" data-track="store:${p.title}" style="justify-content:center">
+        ${p.type === "merch" ? "Shop" : "Get it"}
+      </a>
+    </div>`).join("");
+}
+
+/* ---------------------------------------------------------------------------
+   RENDER: COMMUNITY + SUPPORT
+--------------------------------------------------------------------------- */
+function renderCommunity() {
+  const social = CFG.social || {};
+  const map = [
+    { key: "discord", label: "Discord", emoji: "💬" },
+    { key: "twitter", label: "X / Twitter", emoji: "𝕏" },
+    { key: "tiktok",  label: "TikTok",  emoji: "🎵" },
+    { key: "youtube", label: "YouTube", emoji: "▶️" },
+    { key: "reddit",  label: "Reddit",  emoji: "👽" },
+  ];
+  const el = $("communitySocial");
+  if (el) {
+    const links = map.filter((m) => social[m.key]).map((m) =>
+      `<a class="social-btn" href="${social[m.key]}" target="_blank" rel="noopener">${m.emoji} ${m.label}</a>`).join("");
+    el.innerHTML = links || `<p style="color:var(--muted)">Follow the countdown — social links coming soon.</p>`;
+  }
+
+  const support = CFG.support || {};
+  const sup = $("supportRow");
+  if (sup) {
+    let html = "";
+    if (support.kofi) html += `<a class="btn btn-ghost" href="${support.kofi}" target="_blank" rel="noopener">☕ Support on Ko-fi</a>`;
+    if (support.buymeacoffee) html += `<a class="btn btn-ghost" href="${support.buymeacoffee}" target="_blank" rel="noopener">🧋 Buy me a coffee</a>`;
+    sup.innerHTML = html;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   DISPLAY ADS (Google AdSense) — only loads if enabled in config
+--------------------------------------------------------------------------- */
+function initAds() {
+  const ads = CFG.adsense;
+  if (!ads || !ads.enabled || !ads.client || ads.client.includes("XXXX")) return;
+
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ads.client}`;
+  s.crossOrigin = "anonymous";
+  document.head.appendChild(s);
+
+  document.querySelectorAll(".ad-slot").forEach((slot) => {
+    const key = slot.dataset.ad;
+    const slotId = ads.slots && ads.slots[key];
+    if (!slotId) return;
+    slot.hidden = false;
+    slot.setAttribute("data-filled", "1");
+    slot.innerHTML = `<ins class="adsbygoogle" style="display:block" data-ad-client="${ads.client}" data-ad-slot="${slotId}" data-ad-format="auto" data-full-width-responsive="true"></ins>`;
+    try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   NEWSLETTER / EMAIL CAPTURE
+--------------------------------------------------------------------------- */
+let sb = null;
+function getSupabase() {
+  if (sb) return sb;
+  try {
+    if (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+      sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    }
+  } catch (e) {}
+  return sb;
+}
+
+async function handleNotify(e) {
   e.preventDefault();
-  signupMessage.className = "form-message";
+  const input = $("notifyEmail");
+  const msg = $("notifyMsg");
+  const email = (input.value || "").trim();
+  msg.className = "form-message";
 
-  const username = $("username").value.trim();
-  const email = $("signupEmail").value.trim();
-  const password = $("password").value;
-  const confirmPassword = $("confirmPassword").value;
-
-  if (!username || !email || !password) {
-    signupMessage.textContent = "All fields are required.";
-    signupMessage.classList.add("error");
-    return;
-  }
-  if (password !== confirmPassword) {
-    signupMessage.textContent = "Passwords do not match.";
-    signupMessage.classList.add("error");
-    return;
-  }
-  if (password.length < 8) {
-    signupMessage.textContent = "Password must be at least 8 characters.";
-    signupMessage.classList.add("error");
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    msg.textContent = "Please enter a valid email.";
+    msg.classList.add("error");
     return;
   }
 
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { username } } });
-  if (error) {
-    signupMessage.textContent = error.message || 'Registration failed';
-    signupMessage.classList.add('error');
-    return;
-  }
-  currentUser = email;
-  localStorage.setItem(CURRENT_USER_KEY, currentUser);
-  signupMessage.textContent = `Account created! Welcome, ${currentUser}`;
-  signupMessage.classList.add('success');
-  setTimeout(() => {
-    signupModal.classList.remove('open');
-    signupFormModal.reset();
-    signupMessage.textContent = '';
-    updateAuthUI();
-    renderWatchlist();
-    showToast(`Welcome to Vice Syndicate, ${currentUser}!`);
-  }, 800);
-}
-
-async function handleLogin(e) {
-  e.preventDefault();
-  signupMessage.className = "form-message";
-
-  const email = $("loginEmail").value.trim();
-  const password = $("loginPassword").value;
-
-  if (!email || !password) {
-    signupMessage.textContent = "All fields are required.";
-    signupMessage.classList.add("error");
-    return;
-  }
-
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) {
-    signupMessage.textContent = error.message || 'Login failed';
-    signupMessage.classList.add('error');
-    return;
-  }
-  currentUser = email;
-  localStorage.setItem(CURRENT_USER_KEY, currentUser);
-  signupMessage.textContent = `Welcome back, ${currentUser}!`;
-  signupMessage.classList.add('success');
-  setTimeout(() => {
-    signupModal.classList.remove('open');
-    loginFormModal.reset();
-    signupMessage.textContent = '';
-    updateAuthUI();
-    renderWatchlist();
-    showToast(`Welcome back, ${currentUser}!`);
-  }, 800);
-}
-
-async function handleLogout() {
-  await supabase.auth.signOut();
-  currentUser = null;
-  localStorage.removeItem(CURRENT_USER_KEY);
-  updateAuthUI();
-  profileDropdown.classList.remove("open");
-  showToast("Logged out successfully");
-}
-
-function updateAuthUI() {
-  if (currentUser) {
-    $("signupNavBtn").classList.add("hidden");
-    userProfile.classList.remove("hidden");
-    userName.textContent = currentUser.split("@")[0];
-    dropdownName.textContent = currentUser.split("@")[0];
-    dropdownEmail.textContent = currentUser;
-  } else {
-    $("signupNavBtn").classList.remove("hidden");
-    userProfile.classList.add("hidden");
-  }
-}
-
-// ============================================================================
-// BIDS & WATCHLIST
-// ============================================================================
-
-async function getStoredBids() {
-  if (!currentUser) return {};
-  const { data, error } = await supabase.from('bids').select('*').eq('user_email', currentUser);
-  if (error || !data) return {};
-  const bids = {};
-  data.forEach(bid => {
-    bids[bid.listing_id] = {
-      id: bid.listing_id,
-      name: bid.listing_name,
-      amount: bid.amount,
-      timestamp: new Date(bid.created_at).getTime(),
-      user: bid.user_email
-    };
-  });
-  return bids;
-}
-
-async function setStoredBids(listingId, bidObj) {
-  if (!currentUser) return;
-  await supabase.from('bids').upsert({
-    listing_id: listingId,
-    listing_name: bidObj.name,
-    amount: bidObj.amount,
-    user_email: currentUser,
-    created_at: new Date().toISOString()
-  });
-}
-
-async function renderWatchlist() {
-  const bids = await getStoredBids();
-  const entries = Object.entries(bids);
-  if (entries.length === 0) {
-    watchlistItems.innerHTML = "<li>No active bids</li>";
-    return;
-  }
-  let html = "";
-  entries.forEach(([_, bid]) => {
-    html += `<li><strong>${bid.name}</strong> - ${formatPrice(bid.amount)}</li>`;
-  });
-  watchlistItems.innerHTML = html;
-  userBidCount.textContent = entries.length;
-}
-
-function formatPrice(price) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
-}
-
-// ============================================================================
-// MODALS
-// ============================================================================
-
-function openSignupModal() {
-  signupView.classList.remove("hidden");
-  loginView.classList.add("hidden");
-  signupModal.classList.add("open");
-}
-
-function closeSignupModal() {
-  signupModal.classList.remove("open");
-  setTimeout(() => {
-    signupFormModal.reset();
-    loginFormModal.reset();
-    signupMessage.textContent = '';
-  }, 300);
-}
-
-// ============================================================================
-// MARKETPLACE
-// ============================================================================
-
-function showToast(message) {
-  toast.textContent = message;
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2000);
-}
-
-function applyFilters() {
-  const searchTerm = searchInput.value.toLowerCase();
-  let visibleCount = 0;
-
-  cards.forEach((card) => {
-    const category = card.getAttribute("data-category");
-    const name = card.getAttribute("data-name");
-    const matchesFilter = activeFilter === "all" || category === activeFilter;
-    const matchesSearch = !searchTerm || name.includes(searchTerm);
-    const isVisible = matchesFilter && matchesSearch;
-
-    card.style.display = isVisible ? "" : "none";
-    if (isVisible) visibleCount++;
-  });
-
-  marketSummary.textContent = `${visibleCount} listing${visibleCount !== 1 ? 's' : ''} active`;
-}
-
-function setupBidding() {
-  cards.forEach((card) => {
-    const bidBtn = card.querySelector(".bid-btn");
-    const priceEl = card.querySelector("[data-price]");
-    const listingId = card.getAttribute("data-id");
-    const listingName = card.querySelector("h3").textContent;
-
-    bidBtn.addEventListener("click", async () => {
-      if (!currentUser) {
-        openSignupModal();
-        showToast("Sign up to place bids!");
-        return;
-      }
-      const currentPrice = Number(priceEl.getAttribute("data-price"));
-      const nextBid = Math.round(currentPrice * 1.05);
-      priceEl.setAttribute("data-price", String(nextBid));
-      priceEl.textContent = formatPrice(nextBid);
-
-      await setStoredBids(listingId, {
-        id: listingId,
-        name: listingName,
-        amount: nextBid,
-        timestamp: Date.now(),
-        user: currentUser
-      });
-      await renderWatchlist();
-      updateAuthUI();
-      showToast(`Bid placed on ${listingName}`);
-    });
-  });
-}
-
-async function handleClearBids() {
-  if (!currentUser) return;
-  await supabase.from('bids').delete().eq('user_email', currentUser);
-  cards.forEach((card) => {
-    const priceEl = card.querySelector("[data-price]");
-    const baseValue = Number(priceEl.getAttribute("data-base-price"));
-    priceEl.setAttribute("data-price", String(baseValue));
-    priceEl.textContent = formatPrice(baseValue);
-  });
-  await renderWatchlist();
-  showToast("All bids cleared");
-}
-
-// ============================================================================
-// WEB3 / CRYPTO
-// ============================================================================
-
-async function handleConnectWallet() {
-  if (typeof window.ethereum === "undefined") {
-    showToast("MetaMask or Web3 wallet not detected");
-    return;
-  }
+  const nl = CFG.newsletter || {};
+  let captured = false;
 
   try {
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    connectedWallet = accounts[0];
-    localStorage.setItem(WALLET_STORAGE_KEY, connectedWallet);
+    if (nl.provider === "supabase") {
+      const client = getSupabase();
+      if (client) {
+        const { error } = await client.from(nl.supabaseTable || "subscribers")
+          .insert({ email, source: "gta6.llc", created_at: new Date().toISOString() });
+        if (!error) captured = true;
+        else if (String(error.message || "").toLowerCase().includes("duplicate")) {
+          msg.textContent = "You're already on the list. See you Nov 19! 🌴";
+          msg.classList.add("success");
+          e.target.reset();
+          return;
+        }
+      }
+    } else if (nl.actionUrl) {
+      const res = await fetch(nl.actionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      captured = res.ok;
+    }
+  } catch (err) { /* fall through to local backup */ }
 
-    walletStatus.classList.add("active");
-    walletStatus.innerHTML = `
-      <strong>Connected:</strong> ${connectedWallet.substring(0, 6)}...${connectedWallet.substring(38)}
-    `;
+  // Local backup so no signup is ever lost, even if the backend isn't set up yet.
+  try {
+    const key = "gta6-subscribers";
+    const list = JSON.parse(localStorage.getItem(key) || "[]");
+    if (!list.includes(email)) { list.push(email); localStorage.setItem(key, JSON.stringify(list)); }
+  } catch (e) {}
 
-    renderBidHistory();
-    showToast(`Wallet connected: ${connectedWallet.substring(0, 6)}...`);
-  } catch (error) {
-    showToast("Failed to connect wallet");
-  }
+  msg.textContent = "You're in! We'll ping you the moment GTA 6 goes live. 🌴";
+  msg.classList.add("success");
+  e.target.reset();
+  showToast("🔔 Launch alert set!");
+  if (!captured) console.info("[gta6.llc] Email stored locally. Connect a backend in config.js → newsletter to collect them centrally. See LAUNCH.md.");
 }
 
-async function renderBidHistory() {
-  const bids = await getStoredBids();
-  const entries = Object.entries(bids);
-  if (entries.length === 0) {
-    bidHistory.innerHTML = "";
-    return;
-  }
-  let html = "<h4>Recent Bids (Wallet)</h4><ul>";
-  entries
-    .sort((a, b) => b[1].timestamp - a[1].timestamp)
-    .slice(0, 5)
-    .forEach(([_, bid]) => {
-      html += `<li><strong>${bid.name}</strong> - ${formatPrice(bid.amount)}</li>`;
-    });
-  html += "</ul>";
-  bidHistory.innerHTML = html;
+/* ---------------------------------------------------------------------------
+   UI: nav, scroll, reveal, toast, back-to-top
+--------------------------------------------------------------------------- */
+function showToast(text) {
+  const t = $("toast");
+  if (!t) return;
+  t.textContent = text;
+  t.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove("show"), 2200);
 }
 
-// ============================================================================
-// EMAIL SIGNUP
-// ============================================================================
-
-function handleEmailSignup(e) {
-  e.preventDefault();
-  const email = document.getElementById("emailInput").value.trim();
-
-  if (!email || !email.includes("@")) {
-    document.getElementById("formMessage").textContent = "Please enter a valid email address.";
-    return;
-  }
-
-  document.getElementById("formMessage").textContent = `You're on the list, ${email}. Intel drops every Friday.`;
-  document.getElementById("joinForm").reset();
-}
-
-// ============================================================================
-// UI EFFECTS
-// ============================================================================
-
-function setupMenuToggle() {
-  menuToggle.addEventListener("click", () => {
-    const isOpen = siteNav.classList.toggle("open");
-    menuToggle.setAttribute("aria-expanded", String(isOpen));
+function setupNav() {
+  const toggle = $("menuToggle");
+  const nav = $("siteNav");
+  if (!toggle || !nav) return;
+  toggle.addEventListener("click", () => {
+    const open = nav.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", String(open));
   });
-
-  siteNav.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      siteNav.classList.remove("open");
-      menuToggle.setAttribute("aria-expanded", "false");
-    });
-  });
+  nav.querySelectorAll("a").forEach((a) =>
+    a.addEventListener("click", () => {
+      nav.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    })
+  );
 }
 
-function setupHeroPanel() {
-  const heroPanel = $("heroPanel");
-  if (!heroPanel) return;
-
-  heroPanel.addEventListener("mousemove", (e) => {
-    const rect = heroPanel.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    heroPanel.style.setProperty("--mx", `${x}%`);
-    heroPanel.style.setProperty("--my", `${y}%`);
-  });
-
-  heroPanel.addEventListener("mouseleave", () => {
-    heroPanel.style.setProperty("--mx", "30%");
-    heroPanel.style.setProperty("--my", "30%");
-  });
-}
-
-function setupScrollEffects() {
+function setupScroll() {
   const header = document.querySelector(".site-header");
-
+  const top = $("backToTop");
   window.addEventListener("scroll", () => {
-    header.classList.toggle("scrolled", window.scrollY > 50);
-    backToTopBtn.classList.toggle("visible", window.scrollY > 400);
+    if (header) header.classList.toggle("scrolled", window.scrollY > 40);
+    if (top) top.classList.toggle("visible", window.scrollY > 500);
   }, { passive: true });
-
-  backToTopBtn.addEventListener("click", () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  if (top) top.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
 }
 
-function setupProfileDropdown() {
-  profileToggle.addEventListener("click", (e) => {
-    e.stopPropagation();
-    profileDropdown.classList.toggle("open");
-  });
-
-  document.addEventListener("click", (e) => {
-    if (!profileDropdown.contains(e.target) && !profileToggle.contains(e.target)) {
-      profileDropdown.classList.remove("open");
-    }
-  });
-}
-
-// ============================================================================
-// ANIMATIONS
-// ============================================================================
-
-function setupRevealAnimation() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("visible");
-      }
-    });
-  }, { threshold: 0.1 });
-
-  revealEls.forEach((el) => observer.observe(el));
-}
-
-function setupCounters() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting && !entry.target.classList.contains("counted")) {
-        const target = parseInt(entry.target.getAttribute("data-target"));
-        let current = 0;
-        const increment = Math.ceil(target / 30);
-
-        const interval = setInterval(() => {
-          current += increment;
-          if (current >= target) {
-            current = target;
-            clearInterval(interval);
-          }
-          entry.target.textContent = current;
-        }, 30);
-
-        entry.target.classList.add("counted");
-      }
-    });
-  }, { threshold: 0.1 });
-
-  counters.forEach((el) => observer.observe(el));
-}
-
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-async function initialize() {
-  // Probe API health and show status
-  probeApiHealth();
-  
-  // Countdown
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
-
-  // Animations
-  setupRevealAnimation();
-  setupCounters();
-  setupHeroPanel();
-  setupScrollEffects();
-  setupProfileDropdown();
-
-  // Marketplace
-  setupBidding();
-  setupMenuToggle();
-
-  // Filter buttons
-  filterButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      filterButtons.forEach((btn) => btn.classList.remove("active"));
-      button.classList.add("active");
-      activeFilter = button.getAttribute("data-filter");
-      applyFilters();
-    });
-  });
-
-  // Search input
-  searchInput.addEventListener("input", applyFilters);
-
-  // Clear bids
-  clearBidsButton.addEventListener("click", handleClearBids);
-
-  // Signup modal
-  signupNavBtn.addEventListener("click", openSignupModal);
-  closeModalBtn.addEventListener("click", closeSignupModal);
-  signupFormModal.addEventListener("submit", handleSignup);
-  loginFormModal.addEventListener("submit", handleLogin);
-  logoutBtn.addEventListener("click", handleLogout);
-
-  // Toggle between login and signup views
-  showLoginBtn.addEventListener("click", () => {
-    signupView.classList.add("hidden");
-    loginView.classList.remove("hidden");
-    signupMessage.textContent = "";
-    signupMessage.className = "form-message";
-  });
-  showSignupBtn.addEventListener("click", () => {
-    loginView.classList.add("hidden");
-    signupView.classList.remove("hidden");
-    signupMessage.textContent = "";
-    signupMessage.className = "form-message";
-  });
-
-  // Close modal on backdrop click
-  signupModal.addEventListener("click", (e) => {
-    if (e.target === signupModal) closeSignupModal();
-  });
-
-  // Close modal on Escape key
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeSignupModal();
-      profileDropdown.classList.remove("open");
-    }
-  });
-
-  // Email signup
-  $("joinForm").addEventListener("submit", handleEmailSignup);
-
-  // Crypto
-  connectWalletBtn.addEventListener("click", handleConnectWallet);
-
-  // Restore session state
-  currentUser = localStorage.getItem(CURRENT_USER_KEY);
-  connectedWallet = localStorage.getItem(WALLET_STORAGE_KEY);
-  updateAuthUI();
-
-  if (connectedWallet) {
-    walletStatus.classList.add("active");
-    walletStatus.innerHTML = `
-      <strong>Connected:</strong> ${connectedWallet.substring(0, 6)}...${connectedWallet.substring(38)}
-    `;
-    await renderBidHistory();
+function setupCalendarShare() {
+  const cal = $("addCalendar");
+  if (cal) {
+    // Universal Google Calendar template link for the Nov 19, 2026 launch.
+    const start = "20261119T000000", end = "20261119T010000";
+    const text = encodeURIComponent("GTA 6 Launch Day 🌴");
+    const details = encodeURIComponent("Grand Theft Auto VI is out! Countdown & guides: https://gta6.llc");
+    cal.href = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${start}/${end}&details=${details}`;
+    cal.target = "_blank"; cal.rel = "noopener";
   }
 
-  // Restore bids
-  const saved = await getStoredBids();
-  cards.forEach((card) => {
-    const listingId = card.getAttribute("data-id");
-    const priceEl = card.querySelector("[data-price]");
-    if (!saved[listingId]) return;
-    priceEl.setAttribute("data-price", String(saved[listingId].amount));
-    priceEl.textContent = formatPrice(saved[listingId].amount);
-  });
-
-  await renderWatchlist();
-  applyFilters();
-
-  // Footer year
-  $("year").textContent = String(new Date().getFullYear());
+  const share = $("shareBtn");
+  if (share) {
+    share.addEventListener("click", async () => {
+      const data = { title: "GTA 6 Countdown", text: "GTA 6 drops Nov 19, 2026 — live countdown:", url: "https://gta6.llc" };
+      try {
+        if (navigator.share) { await navigator.share(data); return; }
+        await navigator.clipboard.writeText(data.url);
+        showToast("🔗 Link copied!");
+      } catch (e) { showToast("Share: gta6.llc"); }
+    });
+  }
 }
 
-// ============================================================================
-// START APP
-// ============================================================================
+function setupReveal() {
+  const els = document.querySelectorAll(".section, .notify-card");
+  if (!("IntersectionObserver" in window)) { els.forEach((el) => el.classList.add("visible")); return; }
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((en) => { if (en.isIntersecting) { en.target.classList.add("visible"); obs.unobserve(en.target); } });
+  }, { threshold: 0.08 });
+  els.forEach((el) => obs.observe(el));
+}
 
-document.addEventListener("DOMContentLoaded", initialize);
+/* ---------------------------------------------------------------------------
+   INIT
+--------------------------------------------------------------------------- */
+function init() {
+  renderRetailers();
+  renderGear();
+  renderVpn();
+  renderStore();
+  renderCommunity();
+  initAds();
+
+  tickCountdown();
+  setInterval(tickCountdown, 1000);
+
+  setupNav();
+  setupScroll();
+  setupReveal();
+  setupCalendarShare();
+
+  const form = $("notifyForm");
+  if (form) form.addEventListener("submit", handleNotify);
+
+  const year = $("year");
+  if (year) year.textContent = String(new Date().getFullYear());
+}
+
+document.addEventListener("DOMContentLoaded", init);

@@ -1,33 +1,28 @@
--- Run these statements in the Supabase SQL editor to create required tables
+-- ============================================================================
+-- GTA6.LLC — Supabase setup (free tier). Run in Supabase → SQL Editor.
+-- Only the `subscribers` table is required for the email-capture feature.
+-- ============================================================================
 
-create table if not exists users (
+-- Email list: the site's #1 long-term asset. Captures launch-alert signups.
+create table if not exists subscribers (
   id bigserial primary key,
   email text unique not null,
-  auth_id text unique,
-  password_hash text,
+  source text default 'gta6.llc',
   created_at timestamptz default now()
 );
 
-create table if not exists auctions (
-  id bigserial primary key,
-  title text not null,
-  description text,
-  start_price numeric(18,2) not null,
-  current_price numeric(18,2) not null,
-  seller_id bigint not null references users(id),
-  status text default 'open',
-  created_at timestamptz default now(),
-  ends_at timestamptz
-);
+-- Allow anonymous visitors to INSERT their own email (and nothing else).
+alter table subscribers enable row level security;
 
-create table if not exists bids (
-  id bigserial primary key,
-  auction_id bigint not null references auctions(id),
-  bidder_id bigint not null references users(id),
-  amount numeric(18,2) not null,
-  created_at timestamptz default now()
-);
+drop policy if exists "anon can subscribe" on subscribers;
+create policy "anon can subscribe"
+  on subscribers for insert
+  to anon
+  with check (true);
 
--- Optional indexes
-create index if not exists idx_auctions_seller on auctions(seller_id);
-create index if not exists idx_bids_auction on bids(auction_id);
+-- NOTE: no SELECT policy for anon => the public key cannot read the list.
+-- You read subscribers from the Supabase dashboard (Table Editor) or with the
+-- service_role key server-side. Export them to your email tool anytime.
+
+-- Optional index
+create index if not exists idx_subscribers_created on subscribers(created_at desc);
