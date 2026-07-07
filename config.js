@@ -55,7 +55,7 @@ window.GTA6_CONFIG = {
     blurb: "Cut ping, dodge DDoS boots, and protect your account when GTA 6's online mode goes live. A gaming VPN is the cheapest upgrade you'll make before launch.",
     brand: "NordVPN",
     cta: "Get the deal",
-    url: "https://nordvpn.com/"    // ← replace with YOUR NordVPN affiliate link
+    url: "https://go.nordvpn.net/aff_c?offer_id=15&aff_id=151959&url_id=902"   // NordVPN affiliate (aff_id 151959)
   },
 
   /* --------------------------------------------------------------------------
